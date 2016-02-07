@@ -9,6 +9,7 @@
 
 checkroot
 TCEDIR=$(readlink "/etc/sysconfig/tcedir")
+NEWARGS="${@}"
 
 while [ $# -gt 0 ]
 do
@@ -17,11 +18,13 @@ do
 	-d)  DEBUG=1;;
 	-r)  REBOOT=1;;
 	-t)  TEST=1;;
+	-s)  SKIPUPDATE=1;;
         --)	shift; break;;
-        -*) 	echo "usage: $0 [-v] [-u]" 
-		echo "	-u Unattended Execution"
+        -*) 	echo "usage: $0 [-u] [-d] [-r] [-s] [-t]" 
+		echo "  -u Unattended Execution"
 		echo "  -d Debug, Temp files not erased"
 		echo "  -r Automatic Reboot after Update"
+		echo "  -s Skip Update from GitHub"
 		echo "  -t Test building, but do not move extension to tce directory"
 		exit 1;;
     	*)  break;;	# terminate while loop
@@ -29,22 +32,24 @@ do
     shift
 done
 
-[ -z "$UNATTENDED" ] &&	 clear
+[ -z "$UNATTENDED" ] && clear
 
 echo
 echo "${BLUE}###############################################################"
 echo
 echo "  This script will update the Logitech Media Server extension  "
 echo
-echo "  usage: $0 [-v] [-u] [-n]" 
+echo "  usage: $0 [-u] [-d] [-r] [-s] [-t]"
 echo "            -u Unattended Execution"
 echo "            -d Debug, Temp files not erased"
 echo "            -r Automatic Reboot after Update"
+echo "            -s Skip Update from GitHub"
 echo "            -t Test building, but do not move extension to tce directory"
 echo
 [ -n "$UNATTENDED" ] && echo "       Unattended Operation Enabled"
 [ -n "$DEBUG" ] && echo "       Debug Enabled"
 [ -n "$REBOOT" ] && echo "       Automatic Reboot Enabled"
+[ -n "$SKIPUPDATE" ] && echo "       Skipping Update"
 [ -n "$TEST" ] && echo "       Test Mode Enabled"
 echo "###############################################################"
 echo
@@ -52,11 +57,25 @@ echo "Press Enter to continue, or Ctrl-c to exit and change options${NORMAL}"
 
 [ -z "$UNATTENDED" ] && read gagme
 
+if [ "$SKIPUPDATE" != "1" ]; then
+  echo "${GREEN}Updateing Script from Github..."
+  wget -O /tmp/lms-update.sh https://raw.githubusercontent.com/paul-1/lms-update-script/master/lms-update.sh
+  if [ "$?" != "0" ]; then 
+    echo "${RED}Download FAILED......Continuing with Current Script !${NORMAL}"
+  else
+    echo "${GREEN}Relaunching Script in 3 seconds{$NORMAL}"
+    chmod 755 /tmp/lms-update.sh
+    sleep 3
+    set -- "-s" $NEWARGS
+    exec /bin/sh /tmp/lms-update.sh "${@}"
+  fi
+fi
+
 #Check for depednancy of mksquashfs
 if [ ! -x /usr/local/bin/mksquashfs ]; then
 	if  [ ! -f $TCEDIR/optional/squashfs-tools.tcz ]; then
 		echo "${BLUE} Downloading required extension squashfs-tools.tcz${NORMAL}"
-		echo 
+		echo
 		su - tc -c "tce-load -liw squashfs-tools.tcz"
 	else
 		echo "${BLUE} Loading Local Extension squashfs-tools.tcz${NORMAL}"
@@ -156,7 +175,11 @@ find $BUILD_DIR -name "dbish" | xargs  -t -I {} chmod 755 {} > /dev/null 2>&1
 #Copy Startup and Update Script
 cp -f /tmp/tcloop/slimserver/usr/local/etc/init.d/slimserver $BUILD_DIR/usr/local/etc/init.d/slimserver
 [ "$?" != "0" ] && echo -n "1" > $f
-cp -f /tmp/tcloop/slimserver/usr/local/bin/lms-update.sh $BUILD_DIR/usr/local/bin/lms-update.sh
+if [ -x /tmp/lms-update.sh ]; then
+  cp -f /tmp/lms-update.sh $BUILD_DIR/usr/local/bin/lms-update.sh
+else
+  cp -f /tmp/tcloop/slimserver/usr/local/bin/lms-update.sh $BUILD_DIR/usr/local/bin/lms-update.sh
+fi
 [ "$?" != "0" ] && echo -n "1" > $f
 ##Save Nightly Link for next update check
 echo ${NEWLINK##*/} > $BUILD_DIR/usr/local/slimserver/currentversion
