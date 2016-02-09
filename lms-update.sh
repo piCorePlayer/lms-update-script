@@ -1,9 +1,13 @@
 #!/bin/sh
 #
-#  Original script concept by jgrulich
-#  Script updated for using /tmp and error trapping by paul_123
+#  lms-update.sh
 #
-#  If you really wanted to, you could put this in a crontab.  Download only occurs if the nightly file is updated
+#  Script to update slimserver.tcz on piCore 7.x from Logitech 7.9.0 nightly tar pack.
+#
+#  Script by Paul_123 @ http://forum.tinycorelinux.net/
+#  Script Source https://github.com/paul-1/lms-update-script
+#  Original script concept by jgrulich
+#
 #
 . /etc/init.d/tc-functions
 
@@ -58,31 +62,30 @@ echo "Press Enter to continue, or Ctrl-c to exit and change options${NORMAL}"
 [ -z "$UNATTENDED" ] && read gagme
 
 if [ "$SKIPUPDATE" != "1" ]; then
+  #Check for depednancy of openssl for wget to work with https://
+  if [ ! -x /usr/local/bin/openssl ]; then
+	if  [ ! -f $TCEDIR/optional/openssl.tcz ]; then
+		echo "${GREEN} Downloading required extension openssl.tcz${NORMAL}"
+		echo
+		su - tc -c "tce-load -liw openssl.tcz"
+	else
+		echo "${GREEN} Loading Local Extension openssl.tcz${NORMAL}"
+		echo
+		su - tc -c "tce-load -li openssl.tcz"
+	fi
+	if [ "$?" != "0" ]; then echo "${RED}Failed to load required extension!. ${NORMAL} Check by manually installing	extension openssl.tcz"; exit 1; fi
+  fi
   echo "${GREEN}Updateing Script from Github..."
   wget -O /tmp/lms-update.sh https://raw.githubusercontent.com/paul-1/lms-update-script/master/lms-update.sh
   if [ "$?" != "0" ]; then 
     echo "${RED}Download FAILED......Continuing with Current Script !${NORMAL}"
   else
-    echo "${GREEN}Relaunching Script in 3 seconds{$NORMAL}"
+    echo "${GREEN}Relaunching Script in 3 seconds${NORMAL}"
     chmod 755 /tmp/lms-update.sh
     sleep 3
     set -- "-s" $NEWARGS
     exec /bin/sh /tmp/lms-update.sh "${@}"
   fi
-fi
-
-#Check for depednancy of mksquashfs
-if [ ! -x /usr/local/bin/mksquashfs ]; then
-	if  [ ! -f $TCEDIR/optional/squashfs-tools.tcz ]; then
-		echo "${BLUE} Downloading required extension squashfs-tools.tcz${NORMAL}"
-		echo
-		su - tc -c "tce-load -liw squashfs-tools.tcz"
-	else
-		echo "${BLUE} Loading Local Extension squashfs-tools.tcz${NORMAL}"
-		echo
-		su - tc -c "tce-load -li squashfs-tools.tcz"
-	fi
-	if [ "$?" != "0" ]; then echo "${RED}Failed to load required extension!. ${NORMAL} Check by manually installing extension squashfs-tools.tcz"; exit 1; fi
 fi
 
 echo -ne "${CYAN}Querring the update server ..."
@@ -104,11 +107,28 @@ fi
 
 if [ "${NEWLINK##*/}" = "$CURVER" ]; then
 #	No Update needed
+	echo
 	echo "${BLUE}No update needed.${NORMAL}"
+	echo "DONE"
 	exit 0
 fi
 
-echo "${BLUE}Updating from $NEWLINK"
+#Check for depednancy of mksquashfs
+if [ ! -x /usr/local/bin/mksquashfs ]; then
+	if  [ ! -f $TCEDIR/optional/squashfs-tools.tcz ]; then
+		echo "${GREEN}Downloading required extension squashfs-tools.tcz${NORMAL}"
+		echo
+		su - tc -c "tce-load -liw squashfs-tools.tcz"
+	else
+		echo "${GREEN}Loading Local Extension squashfs-tools.tcz${NORMAL}"
+		echo
+		su - tc -c "tce-load -li squashfs-tools.tcz"
+	fi
+	if [ "$?" != "0" ]; then echo "${RED}Failed to load required extension!. ${NORMAL} Check by manually installing extension squashfs-tools.tcz"; exit 1; fi
+fi
+
+echo
+echo "${GREEN}Updating from $NEWLINK"
 
 DL_DIR=`mktemp -d`
 wget -P $DL_DIR $NEWLINK
@@ -119,11 +139,11 @@ if [ "$?" != "0" ]; then
 fi
 
 echo
-echo -e "${GREEN}Downloaded, the files will be extracted now"
+echo -e "${BLUE}Download Complete. The files will now be extracted"
 
 #  Extract Downloaded File
 echo
-echo -ne "${BLUE}Extracting Download..."
+echo -ne "${GREEN}Extracting Download..."
 f=`mktemp`
 ( tar -xzf $DL_DIR/${NEWLINK##*/} -C $DL_DIR; echo -n $? > $f ) &
 
@@ -140,14 +160,14 @@ rm -f $f
 [ -n "$DEBUG" ] || rm $DL_DIR/${NEWLINK##*/}
 
 echo
-echo -e "${GREEN}Tar Extraction Complete, Building Updated Extension Filesystem"
+echo -e "${BLUE}Tar Extraction Complete, Building Updated Extension Filesystem"
 echo
 echo "Press Enter to continue, or Ctrl-c to exit${NORMAL}"
 
 [ -z "$UNATTENDED" ] && read gagme
 
 echo
-echo -ne "${BLUE}Update in progress ..."
+echo -ne "${GREEN}Update in progress ..."
  
 BUILD_DIR=`mktemp -d`
 
@@ -196,13 +216,13 @@ rm -f $f
 
 echo
 echo
-echo -e "${GREEN}Done, the files are ready to pack the extension"
+echo -e "${BLUE}Done Updating Files.  The files are ready to be packed into the new extension"
 echo
 echo "${BLUE}Press Enter to continue, or Ctrl-c to exit${NORMAL}"
 
 [ -z "$UNATTENDED" ] && read gagme
 
-echo "${BLUE}Creating extension, it may take a while ..."
+echo "${GREEN}Creating extension, it may take a while ..."
 
 mksquashfs $BUILD_DIR /tmp/slimserver.tcz -noappend -force-uid 0 -force-gid 50
 if [ "$?" != "0" ]; then 
@@ -216,27 +236,27 @@ if [ -z "$TEST" ]; then
   mv -f /tmp/slimserver.tcz $TCEDIR/optional
   chown tc.staff $TCEDIR/optional/slimserver.tcz*
   echo
-  echo "${BLUE}Syncing filesystems"
+  echo "${GREEN}Syncing filesystems"
   sync
   echo
-  echo -e "${GREEN}Done, the new extension was moved to $TCEDIR/optional"
+  echo -e "${BLUE}Done, the new extension was moved to $TCEDIR/optional"
   echo
 else 
   echo
-  echo -e "${GREEN}Done, the new extension was left at /tmp/slimserver.tcz"
+  echo -e "${BLUE}Done, the new extension was left at /tmp/slimserver.tcz"
   echo
 fi
 
 
 if [ -z "$DEBUG" ]; then
-	echo -e "${BLUE}Deleting the temp folders"
+	echo -e "${GREEN}Deleting the temp folders"
 	rm -rf $BUILD_DIR
 	rm -rf $DL_DIR
 fi
 
 if [ -z "$TEST" ]; then
   echo
-  echo "${GREEN}The update was finished, please reboot to take effect."
+  echo "${BLUE}The update was finished, please reboot to take effect."
 fi
 echo
 echo "${BLUE}Press Enter to exit${NORMAL}"
