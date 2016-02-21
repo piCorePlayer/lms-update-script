@@ -1,8 +1,8 @@
 #!/bin/sh
 #
-#  lms-update.sh
+#  slim-update.sh
 #
-#  Script to update slimserver.tcz on piCore 7.x from Logitech 7.9.0 nightly tar pack.
+#  Script to update slimserver.tcz on piCore 7.x from Automatic Download from LMS.
 #
 #  Script by Paul_123 @ http://forum.tinycorelinux.net/
 #  Script Source https://github.com/paul-1/lms-update-script
@@ -13,21 +13,23 @@
 
 checkroot
 TCEDIR=$(readlink "/etc/sysconfig/tcedir")
+DL_DIR="/tmp/slimupdate"
 NEWARGS="${@}"
+GIT_REPO="https://raw.githubusercontent.com/paul-1/lms-update-script/master"
 
 while [ $# -gt 0 ]
 do
     case "$1" in
-        -u)  UNATTENDED=1;;
+	-u)  UNATTENDED=1;;
 	-d)  DEBUG=1;;
-	-r)  REBOOT=1;;
+	-r)  RELOAD=1;;
 	-t)  TEST=1;;
 	-s)  SKIPUPDATE=1;;
         --)	shift; break;;
         -*) 	echo "usage: $0 [-u] [-d] [-r] [-s] [-t]" 
 		echo "  -u Unattended Execution"
 		echo "  -d Debug, Temp files not erased"
-		echo "  -r Automatic Reboot after Update"
+		echo "  -r Reload LMS after Update"
 		echo "  -s Skip Update from GitHub"
 		echo "  -t Test building, but do not move extension to tce directory"
 		exit 1;;
@@ -46,13 +48,13 @@ echo
 echo "  usage: $0 [-u] [-d] [-r] [-s] [-t]"
 echo "            -u Unattended Execution"
 echo "            -d Debug, Temp files not erased"
-echo "            -r Automatic Reboot after Update"
+echo "            -r Reload LMS after Update"
 echo "            -s Skip Update from GitHub"
 echo "            -t Test building, but do not move extension to tce directory"
 echo
 [ -n "$UNATTENDED" ] && echo "       Unattended Operation Enabled"
 [ -n "$DEBUG" ] && echo "       Debug Enabled"
-[ -n "$REBOOT" ] && echo "       Automatic Reboot Enabled"
+[ -n "$RELOAD" ] && echo "       Automatic Reload Enabled"
 [ -n "$SKIPUPDATE" ] && echo "       Skipping Update"
 [ -n "$TEST" ] && echo "       Test Mode Enabled"
 echo "###############################################################"
@@ -75,41 +77,30 @@ if [ "$SKIPUPDATE" != "1" ]; then
 	fi
 	if [ "$?" != "0" ]; then echo "${RED}Failed to load required extension!. ${NORMAL} Check by manually installing	extension openssl.tcz"; exit 1; fi
   fi
+
   echo "${GREEN}Updateing Script from Github..."
-  wget -O /tmp/lms-update.sh https://raw.githubusercontent.com/paul-1/lms-update-script/master/lms-update.sh
-  if [ "$?" != "0" ]; then 
-    echo "${RED}Download FAILED......Continuing with Current Script !${NORMAL}"
-  else
-    echo "${GREEN}Relaunching Script in 3 seconds${NORMAL}"
-    chmod 755 /tmp/lms-update.sh
-    sleep 3
-    set -- "-s" $NEWARGS
-    exec /bin/sh /tmp/lms-update.sh "${@}"
-  fi
+  FILES="lms-update.sh custom-strings.txt picore-update.htm Custom.pm"
+  for F in $FILES
+  do
+	rm -f ${DL_DIR}/${F}
+    wget -O ${DL_DIR}/${F} ${GIT_REPO}/${F}
+    if [ "$?" != "0" ]; then 
+      echo "${RED}Download FAILED......Please Check or Relauch script with with -s option!${NORMAL}"
+      exit 1
+    fi
+  done
+
+  echo "${GREEN}Relaunching Script in 3 seconds${NORMAL}"
+  chmod 755 /tmp/lms-update.sh
+  sleep 3
+  set -- "-s" $NEWARGS
+  exec /bin/sh /tmp/lms-update.sh "${@}"
 fi
 
-echo -ne "${CYAN}Querring the update server ..."
-echo
-
-tmp=`mktemp`
-wget "http://www.mysqueezebox.com/update/?version=7.9.0&revision=1&geturl=1&os=nocpan" -O $tmp
-if [ "$?" != "0" ]; then echo "${RED}Unable to Contact Download Server!${NORMAL}"; rm $tmp; exit 1; fi
-read NEWLINK < $tmp
-rm -f $tmp
-
-if [ -f  "/usr/local/slimserver/currentversion" ]; then
-	read CURVER < /usr/local/slimserver/currentversion
-else
-	CURVER="Blank"
-fi
-
-######This give just the filename echo "${NEWLINK##*/}"
-
-if [ "${NEWLINK##*/}" = "$CURVER" ]; then
-#	No Update needed
+NEWUPDATE=`find ${DL_DIR} -name "*.tgz"`
+if [ -z $NEWUPDATE ]; then
+	echo "${BLUE}No Update Found, please make sure Automatic updates and Automatic Downloads are enable in LMS.${NORMAL}"
 	echo
-	echo "${BLUE}No update needed.${NORMAL}"
-	echo "DONE"
 	exit 0
 fi
 
@@ -128,36 +119,24 @@ if [ ! -x /usr/local/bin/mksquashfs ]; then
 fi
 
 echo
-echo "${GREEN}Updating from $NEWLINK"
-
-DL_DIR=`mktemp -d`
-wget -P $DL_DIR $NEWLINK
-if [ "$?" != "0" ]; then 
-  echo "${RED}Download FAILED...... exiting!${NORMAL}"
-  [ -n "$DEBUG" ] || rm -rf $DL_DIR
-  exit 1
-fi
-
-echo
-echo -e "${BLUE}Download Complete. The files will now be extracted"
+echo "${GREEN}Updating from ${NEWUPDATE}"
 
 #  Extract Downloaded File
 echo
-echo -ne "${GREEN}Extracting Download..."
+echo -ne "${GREEN}Extracting Update..."
+
+SRC_DIR=`mktemp -d`
 f=`mktemp`
-( tar -xzf $DL_DIR/${NEWLINK##*/} -C $DL_DIR; echo -n $? > $f ) &
+( tar -xzf ${NEWUPDATE} -C $SRC_DIR; echo -n $? > $f ) &
 
 rotdash $!
 read e < $f
 if [ "$e" != "0" ]; then
   echo "${RED}File Extraction FAILED.....exiting!${NORMAL}"
-  [ -n "$DEBUG" ] || rm -rf $DL_DIR
+  [ -n "$DEBUG" ] || rm -rf $SRC_DIR
   exit 1
 fi
 rm -f $f
-
-#Erase tar file
-[ -n "$DEBUG" ] || rm $DL_DIR/${NEWLINK##*/}
 
 echo
 echo -e "${BLUE}Tar Extraction Complete, Building Updated Extension Filesystem"
@@ -168,17 +147,18 @@ echo "Press Enter to continue, or Ctrl-c to exit${NORMAL}"
 
 echo
 echo -ne "${GREEN}Update in progress ..."
- 
+
 BUILD_DIR=`mktemp -d`
 
 f=`mktemp`
 echo 0 > $f
+
 # Each command has an error trap
 (mkdir -p $BUILD_DIR/usr/local/bin
 [ "$?" != "0" ] && echo -n "1" > $f
 mkdir -p $BUILD_DIR/usr/local/etc/init.d
 [ "$?" != "0" ] && echo -n "1" > $f
-mv $DL_DIR/*-noCPAN $BUILD_DIR/usr/local/slimserver
+mv $SRC_DIR/*-noCPAN $BUILD_DIR/usr/local/slimserver
 [ "$?" != "0" ] && echo -n "1" > $f
 ###tarfile comes with only user ownership, which breaks symlinks on TC
 #Change all files to 644
@@ -195,21 +175,50 @@ find $BUILD_DIR -name "dbish" | xargs  -t -I {} chmod 755 {} > /dev/null 2>&1
 #Copy Startup and Update Script
 cp -f /tmp/tcloop/slimserver/usr/local/etc/init.d/slimserver $BUILD_DIR/usr/local/etc/init.d/slimserver
 [ "$?" != "0" ] && echo -n "1" > $f
-if [ -x /tmp/lms-update.sh ]; then
-  cp -f /tmp/lms-update.sh $BUILD_DIR/usr/local/bin/lms-update.sh
-else
-  cp -f /tmp/tcloop/slimserver/usr/local/bin/lms-update.sh $BUILD_DIR/usr/local/bin/lms-update.sh
+
+FDIR="usr/local/bin"
+F="lms_update.sh"
+if [ -x ${DL_DIR}/${F} ]; then  # Copy Updated Version
+  cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
+else   # Copy version from current Extension
+  cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
 fi
 [ "$?" != "0" ] && echo -n "1" > $f
-##Save Nightly Link for next update check
-echo ${NEWLINK##*/} > $BUILD_DIR/usr/local/slimserver/currentversion
+
+FDIR="usr/local/slimserver/Slim/Utils/OS"
+F="Custom.pm"
+if [ -x ${DL_DIR}/${F} ]; then  # Copy Updated Version
+  cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
+else   # Copy version from current Extension
+  cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
+fi
+[ "$?" != "0" ] && echo -n "1" > $f
+
+FDIR="usr/local/slimserver/HTML/EN/html/docs"
+F="picore-update.html"
+if [ -x ${DL_DIR}/${F} ]; then  # Copy Updated Version
+  cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
+else   # Copy version from current Extension
+  cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
+fi
+[ "$?" != "0" ] && echo -n "1" > $f
+
+FDIR="usr/local/slimserver"
+F="custom-strings.txt"
+if [ -x ${DL_DIR}/${F} ]; then  # Copy Updated Version
+  cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
+else   # Copy version from current Extension
+  cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
+fi
+[ "$?" != "0" ] && echo -n "1" > $f
+
 ) &
 
 rotdash $!
 read e < $f
 if [ "$e" != "0" ]; then
   echo "${RED}Update FAILED.....exiting!${NORMAL}"
-  [ -n "$DEBUG" ] || (rm -rf $DL_DIR; rm -rf $BUILD_DIR)
+  [ -n "$DEBUG" ] || (rm -rf $SRC_DIR; rm -rf $BUILD_DIR)
   exit 1
 fi
 rm -f $f
@@ -222,46 +231,54 @@ echo "${BLUE}Press Enter to continue, or Ctrl-c to exit${NORMAL}"
 
 [ -z "$UNATTENDED" ] && read gagme
 
-echo "${GREEN}Creating extension, it may take a while ..."
+echo "${GREEN}Creating extension, it may take a while ... especially on rpi 0/A/B/A+/B+"
 
 mksquashfs $BUILD_DIR /tmp/slimserver.tcz -noappend -force-uid 0 -force-gid 50
 if [ "$?" != "0" ]; then 
   echo "${RED}Building Extension FAILED...... exiting!${NORMAL}"
-  [ -n "$DEBUG" ] || (rm -rf $DL_DIR; rm -rf $BUILD_DIR)
+  [ -n "$DEBUG" ] || (rm -rf $SRC_DIR; rm -rf $BUILD_DIR)
   exit 1
 fi
 
 if [ -z "$TEST" ]; then
+  echo "${BLUE}Ready to Reload LMS, Press Enter to Continue${NORMAL}")
+  [ -z "$UNATTENDED" ] && read gagme
+  echo "${GREEN}Stopping LMS${NORMAL}"
+  /usr/local/etc/slimserver stop
+  echo "${GREEN}Unmounting Extension${NORMAL}"
+  umount /tmp/tcloop/slimserver
+  rm -f /usr/local/tce.installed/slimserver
+  echo "${GREEN}Moving new Extension to $TCEDIR/optional${NORMAL}"
   md5sum /tmp/slimserver.tcz > $TCEDIR/optional/slimserver.tcz.md5.txt
   mv -f /tmp/slimserver.tcz $TCEDIR/optional
   chown tc.staff $TCEDIR/optional/slimserver.tcz*
   echo
-  echo "${GREEN}Syncing filesystems"
+  echo "${GREEN}Syncing filesystems${NORMAL}"
   sync
-  echo
-  echo -e "${BLUE}Done, the new extension was moved to $TCEDIR/optional"
+  echo "${GREEN}Loading new Extension${NORMAL}"
+  su - tc -c "tce-load -li slimserver.tcz"
+  echo "${GREEN}Starting LMS${NORMAL}"
+  /bin/sh -c /usr/local/etc/slimserver start
   echo
 else 
   echo
   echo -e "${BLUE}Done, the new extension was left at /tmp/slimserver.tcz"
   echo
 fi
-
+echo
+echo "${BLUE}Press Enter to Cleanup and exit${NORMAL}"
+echo
+[ -z "$UNATTENDED" ] && read gagme
 
 if [ -z "$DEBUG" ]; then
 	echo -e "${GREEN}Deleting the temp folders"
 	rm -rf $BUILD_DIR
-	rm -rf $DL_DIR
+	rm -rf $SRC_DIR
+	#Erase Downloaded Files
+	rm -f ${DL_DIR}/*
 fi
 
-if [ -z "$TEST" ]; then
-  echo
-  echo "${BLUE}The update was finished, please reboot to take effect."
-fi
-echo
-echo "${BLUE}Press Enter to exit${NORMAL}"
+echo "${BLUE}DONE${NORMAL}"
 echo
 
-[ -z "$UNATTENDED" ] && read gagme
 
-[ -n "$REBOOT" ] && (echo "${RED}You asked for auto reboot, you got it..... in 10 seconds"; sleep 10;  reboot)
