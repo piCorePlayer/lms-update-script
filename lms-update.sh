@@ -79,7 +79,7 @@ if [ "$SKIPUPDATE" != "1" ]; then
   fi
 
   echo "${GREEN}Updateing Script from Github..."
-  FILES="lms-update.sh custom-strings.txt picore-update.htm Custom.pm"
+  FILES="lms-update.sh custom-strings.txt picore-update.html Custom.pm"
   for F in $FILES
   do
 	rm -f ${DL_DIR}/${F}
@@ -91,10 +91,10 @@ if [ "$SKIPUPDATE" != "1" ]; then
   done
 
   echo "${GREEN}Relaunching Script in 3 seconds${NORMAL}"
-  chmod 755 /tmp/lms-update.sh
+  chmod 755 ${DL_DIR}/lms-update.sh
   sleep 3
   set -- "-s" $NEWARGS
-  exec /bin/sh /tmp/lms-update.sh "${@}"
+  exec /bin/sh ${DL_DIR}/lms-update.sh "${@}"
 fi
 
 NEWUPDATE=`find ${DL_DIR} -name "*.tgz"`
