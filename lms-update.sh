@@ -160,6 +160,35 @@ mkdir -p $BUILD_DIR/usr/local/etc/init.d
 [ "$?" != "0" ] && echo -n "1" > $f
 mv $SRC_DIR/*-noCPAN $BUILD_DIR/usr/local/slimserver
 [ "$?" != "0" ] && echo -n "1" > $f
+
+#Copy in piCore custom files
+FDIR="usr/local/slimserver/Slim/Utils/OS"
+F="Custom.pm"
+if [ -e ${DL_DIR}/${F} ]; then  # Copy Updated Version
+  cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
+else   # Copy version from current Extension
+  cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
+fi
+[ "$?" != "0" ] && echo -n "1" > $f
+
+FDIR="usr/local/slimserver/HTML/EN/html/docs"
+F="picore-update.html"
+if [ -e ${DL_DIR}/${F} ]; then  # Copy Updated Version
+  cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
+else   # Copy version from current Extension
+  cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
+fi
+[ "$?" != "0" ] && echo -n "1" > $f
+
+FDIR="usr/local/slimserver"
+F="custom-strings.txt"
+if [ -e ${DL_DIR}/${F} ]; then  # Copy Updated Version
+  cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
+else   # Copy version from current Extension
+  cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
+fi
+[ "$?" != "0" ] && echo -n "1" > $f
+
 ###tarfile comes with only user ownership, which breaks symlinks on TC
 #Change all files to 644
 chmod -R 644 $BUILD_DIR
@@ -177,35 +206,9 @@ cp -f /tmp/tcloop/slimserver/usr/local/etc/init.d/slimserver $BUILD_DIR/usr/loca
 [ "$?" != "0" ] && echo -n "1" > $f
 
 FDIR="usr/local/bin"
-F="lms_update.sh"
-if [ -x ${DL_DIR}/${F} ]; then  # Copy Updated Version
-  cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
-else   # Copy version from current Extension
-  cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
-fi
-[ "$?" != "0" ] && echo -n "1" > $f
-
-FDIR="usr/local/slimserver/Slim/Utils/OS"
-F="Custom.pm"
-if [ -x ${DL_DIR}/${F} ]; then  # Copy Updated Version
-  cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
-else   # Copy version from current Extension
-  cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
-fi
-[ "$?" != "0" ] && echo -n "1" > $f
-
-FDIR="usr/local/slimserver/HTML/EN/html/docs"
-F="picore-update.html"
-if [ -x ${DL_DIR}/${F} ]; then  # Copy Updated Version
-  cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
-else   # Copy version from current Extension
-  cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
-fi
-[ "$?" != "0" ] && echo -n "1" > $f
-
-FDIR="usr/local/slimserver"
-F="custom-strings.txt"
-if [ -x ${DL_DIR}/${F} ]; then  # Copy Updated Version
+F="lms-update.sh"
+echo "${DL_DIR}/${F}"
+if [ -x "${DL_DIR}/${F}" ]; then  # Copy Updated Version
   cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
 else   # Copy version from current Extension
   cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
@@ -241,10 +244,10 @@ if [ "$?" != "0" ]; then
 fi
 
 if [ -z "$TEST" ]; then
-  echo "${BLUE}Ready to Reload LMS, Press Enter to Continue${NORMAL}")
+  echo "${BLUE}Ready to Reload LMS, Press Enter to Continue${NORMAL}"
   [ -z "$UNATTENDED" ] && read gagme
   echo "${GREEN}Stopping LMS${NORMAL}"
-  /usr/local/etc/slimserver stop
+  /usr/local/etc/init.d/slimserver stop
   echo "${GREEN}Unmounting Extension${NORMAL}"
   umount /tmp/tcloop/slimserver
   rm -f /usr/local/tce.installed/slimserver
@@ -258,7 +261,7 @@ if [ -z "$TEST" ]; then
   echo "${GREEN}Loading new Extension${NORMAL}"
   su - tc -c "tce-load -li slimserver.tcz"
   echo "${GREEN}Starting LMS${NORMAL}"
-  /bin/sh -c /usr/local/etc/slimserver start
+  /bin/sh -c "/usr/local/etc/init.d/slimserver start"
   echo
 else 
   echo
