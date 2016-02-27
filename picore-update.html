@@ -5,11 +5,10 @@ IF extension;
 	distro = extension.0;
 END;
 %]
+<p>On piCore distributions we provide script to download and Update Logitech Media Server. 
+These will update your local copy of LMS to the latest source code.<p>
 
-<p>On piCore distributions we provide an automatic download of Logitech Media Server update installers. 
-These will update your local copy of LMS to the latest source coded.<p>
-
-<p>Your Logitech Media Server has downloaded the latest installer to the following location:</p>
+<p>The download URL for your Logitech Media Server has set to the latest installer:</p>
 
 <pre>[% installerFile %]</pre>
 
@@ -20,5 +19,10 @@ These will update your local copy of LMS to the latest source coded.<p>
 	<li>Run the following command to execute the installer</li>
 	<li><code>sudo [% distro == 'tgz' ? 'lms-update.sh ' : 'Error' %] </code></li>
 </ul>
+<br>
+<p>For users of piCorePlayer please use 
+<script language="JavaScript">
+document.write('<a href="' + window.location.protocol + '//' + window.location.hostname + ':80' + '/lms-update.cgi' + '" >This Link</a> ' );
+</script></p>
 
 [% PROCESS helpfooter.html %]

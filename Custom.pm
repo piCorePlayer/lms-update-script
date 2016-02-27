@@ -47,7 +47,7 @@ sub initSearchPath {
 
 	$class->SUPER::initSearchPath();
 
-	my @paths = (split(/:/, ($ENV{'PATH'} || '/sbin:/usr/sbin:/bin:/usr/bin')), qw(/usr/bin /usr/local/bin /usr/libexec /sw/bin /usr/sbin /opt/bin));
+	my @paths = (split(/:/, ($ENV{'PATH'} || '/sbin:/usr/sbin:/bin:/usr/bin')), qw(/usr/bin /usr/local/bin /usr/sbin ));
 	
 	Slim::Utils::Misc::addFindBinPaths(@paths);
 }
@@ -94,7 +94,9 @@ sub dirsFor {
 	    
 		my $updateDir = '/tmp/slimupdate';
 
-		push @dirs, $updateDir;
+        mkdir $updateDir unless -d $updateDir;
+        	
+		@dirs = $updateDir;
                         
 	} else {
 
@@ -107,14 +109,24 @@ sub canAutoUpdate { 1 }
 sub runningFromSource { 0 }
 sub installerExtension { 'tgz' }
 sub installerOS { 'nocpan' }
+
 sub getUpdateParams {
-	return {
-		cb => sub {
-			my ($file) = @_;
-			$file =~ /(\d\.\d\.\d).*?(\d{5,})/;
-			$::newVersion = Slim::Utils::Strings::string('PICORE_UPDATE_AVAILABLE', "$1 - $2", $file );
+	my ($class, $url) = @_;
+	my $updateFile = '/tmp/slimupdate/update_url';
+	if ($url) {
+		$url =~ /(\d\.\d\.\d).*?(\d{5,})/;
+		$::newVersion = Slim::Utils::Strings::string('PICORE_UPDATE_AVAILABLE', "$1 - $2", $url );
+			
+		if ($url && open(my $file,">$updateFile")) {
+			main::INFOLOG &&Slim::Utils::Log->info("Setting update url file to: $url"); 
+			print $file $url;
+			close $file;
 		}
-	};
+		elsif ($url) {
+			Slim::Utils::Log->warn("Unable to update version file: $updateFile");
+		}
+	}
+	return;
 }                                                                                               
 
 sub logRotate
@@ -125,10 +137,6 @@ sub logRotate
 	# only keep small log files (1MB) because they are in RAM
 	Slim::Utils::OS->logRotate($dir, MAX_LOGSIZE);
 }       
-
-sub restartServer { 1 }
-
-sub canRestartServer { 1 }
 
 sub ignoredItems {
 	return (

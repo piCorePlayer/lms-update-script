@@ -14,6 +14,7 @@
 checkroot
 TCEDIR=$(readlink "/etc/sysconfig/tcedir")
 DL_DIR="/tmp/slimupdate"
+UPDATELINK="${DL_DIR}/update_url"
 NEWARGS="${@}"
 GIT_REPO="https://raw.githubusercontent.com/paul-1/lms-update-script/master"
 
@@ -95,6 +96,30 @@ if [ "$SKIPUPDATE" != "1" ]; then
   sleep 3
   set -- "-s" $NEWARGS
   exec /bin/sh ${DL_DIR}/lms-update.sh "${@}"
+fi
+
+if [ -f  "${UPDATELINK}" ]; then
+  read LINK < $UPDATELINK
+else
+  LINK=""
+fi
+
+if [ -z $LINK ]; then
+#   No Update needed
+  echo
+  echo "${BLUE}No update needed.${NORMAL}"
+  echo "DONE"
+  exit 0
+else
+  echo
+  echo "${GREEN}Downloading update from ${LINK}"
+fi
+
+wget -P $DL_DIR $LINK
+if [ "$?" != "0" ]; then
+  echo "${RED}Download FAILED...... exiting!${NORMAL}"
+  [ -n "$DEBUG" ] || rm -f $DL_DIR/'*.tgz'
+  exit 1
 fi
 
 NEWUPDATE=`find ${DL_DIR} -name "*.tgz"`
