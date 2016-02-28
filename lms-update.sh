@@ -16,23 +16,30 @@ TCEDIR=$(readlink "/etc/sysconfig/tcedir")
 DL_DIR="/tmp/slimupdate"
 UPDATELINK="${DL_DIR}/update_url"
 NEWARGS="${@}"
-GIT_REPO="https://raw.githubusercontent.com/paul-1/lms-update-script/master"
+GIT_REPO="https://raw.githubusercontent.com/paul-1/lms-update-script/Master"
+
+usage(){
+  echo "  usage: $0 [-u] [-d] [-m] [-r] [-s] [-t]"
+  echo "            -u Unattended Execution"
+  echo "            -d Debug, Temp files not erased"
+  echo "            -m Manual download Link Check for LMS update"
+  echo "            -r Reload LMS after Update"
+  echo "            -s Skip Update from GitHub"
+  echo "            -t Test building, but do not move extension to tce directory"
+  echo
+}
 
 while [ $# -gt 0 ]
 do
     case "$1" in
 	-u)  UNATTENDED=1;;
 	-d)  DEBUG=1;;
+	-m)  MANUAL=1;;
 	-r)  RELOAD=1;;
 	-t)  TEST=1;;
 	-s)  SKIPUPDATE=1;;
         --)	shift; break;;
-        -*) 	echo "usage: $0 [-u] [-d] [-r] [-s] [-t]" 
-		echo "  -u Unattended Execution"
-		echo "  -d Debug, Temp files not erased"
-		echo "  -r Reload LMS after Update"
-		echo "  -s Skip Update from GitHub"
-		echo "  -t Test building, but do not move extension to tce directory"
+        -*)  usage
 		exit 1;;
     	*)  break;;	# terminate while loop
     esac
@@ -46,15 +53,10 @@ echo "${BLUE}###############################################################"
 echo
 echo "  This script will update the Logitech Media Server extension  "
 echo
-echo "  usage: $0 [-u] [-d] [-r] [-s] [-t]"
-echo "            -u Unattended Execution"
-echo "            -d Debug, Temp files not erased"
-echo "            -r Reload LMS after Update"
-echo "            -s Skip Update from GitHub"
-echo "            -t Test building, but do not move extension to tce directory"
-echo
+usage
 [ -n "$UNATTENDED" ] && echo "       Unattended Operation Enabled"
 [ -n "$DEBUG" ] && echo "       Debug Enabled"
+[ -n "$MANUAL" ] && echo "       Manual Download Link Check Enabled"
 [ -n "$RELOAD" ] && echo "       Automatic Reload Enabled"
 [ -n "$SKIPUPDATE" ] && echo "       Skipping Update"
 [ -n "$TEST" ] && echo "       Test Mode Enabled"
@@ -62,7 +64,7 @@ echo "###############################################################"
 echo
 echo "Press Enter to continue, or Ctrl-c to exit and change options${NORMAL}"
 
-[ -z "$UNATTENDED" ] && read gagme
+[ -z "$UNATTENDED" ] && read key
 
 if [ "$SKIPUPDATE" != "1" ]; then
   #Check for depednancy of openssl for wget to work with https://
@@ -98,23 +100,44 @@ if [ "$SKIPUPDATE" != "1" ]; then
   exec /bin/sh ${DL_DIR}/lms-update.sh "${@}"
 fi
 
-if [ -f  "${UPDATELINK}" ]; then
-  read LINK < $UPDATELINK
+
+if [ -z "$MANUAL" ]; then
+  if [ -f  "${UPDATELINK}" ]; then
+    read LINK < $UPDATELINK
+  else
+    LINK=""
+  fi
 else
-  LINK=""
+  echo "${YELLOW}Performing manual check for update link${NORMAL}"
+  tmp=`mktemp`
+  wget "http://www.mysqueezebox.com/update/?version=7.9.0&revision=1&geturl=1&os=nocpan" -O $tmp
+  if [ "$?" != "0" ]; then echo "${RED}Unable to Contact Download Server!${NORMAL}"; rm $tmp; exit 1; fi
+  read LINK < $tmp
+  rm -f $tmp
 fi
 
 if [ -z $LINK ]; then
 #   No Update needed
-  echo
-  echo "${BLUE}No update needed.${NORMAL}"
-  echo "DONE"
-  exit 0
+  if [ -z "$MANUAL" ]; then
+    echo
+    echo "${BLUE}No update link found.   THis either means that there is no update, or you do not have automatic update"
+    echo "checks and automatic downloads enabled in the LMS settings."
+    echo 
+    echo "If you would like to manually check for updates using a static update check, please relaunch this script"
+    echo "using the -m command line switch${NORMAL}"
+    echo "DONE"
+    exit 0
+  else
+    echo "${BLUE}No update found."
+    echo "DONE.${NORMAL}"
+    exit 0
+  fi
 else
   echo
   echo "${GREEN}Downloading update from ${LINK}"
 fi
 
+rm -f $DL_DIR/*.tgz
 wget -P $DL_DIR $LINK
 if [ "$?" != "0" ]; then
   echo "${RED}Download FAILED...... exiting!${NORMAL}"
@@ -168,7 +191,7 @@ echo -e "${BLUE}Tar Extraction Complete, Building Updated Extension Filesystem"
 echo
 echo "Press Enter to continue, or Ctrl-c to exit${NORMAL}"
 
-[ -z "$UNATTENDED" ] && read gagme
+[ -z "$UNATTENDED" ] && read key
 
 echo
 echo -ne "${GREEN}Update in progress ..."
@@ -257,7 +280,7 @@ echo -e "${BLUE}Done Updating Files.  The files are ready to be packed into the 
 echo
 echo "${BLUE}Press Enter to continue, or Ctrl-c to exit${NORMAL}"
 
-[ -z "$UNATTENDED" ] && read gagme
+[ -z "$UNATTENDED" ] && read key
 
 echo "${GREEN}Creating extension, it may take a while ... especially on rpi 0/A/B/A+/B+"
 
@@ -269,26 +292,39 @@ if [ "$?" != "0" ]; then
 fi
 
 if [ -z "$TEST" ]; then
-  echo "${BLUE}Ready to Reload LMS, Press Enter to Continue${NORMAL}"
-  [ -z "$UNATTENDED" ] && read gagme
-  echo "${GREEN}Stopping LMS${NORMAL}"
-  /usr/local/etc/init.d/slimserver stop
-  echo "${GREEN}Unmounting Extension${NORMAL}"
-  umount /tmp/tcloop/slimserver
-  rm -f /usr/local/tce.installed/slimserver
-  echo "${GREEN}Moving new Extension to $TCEDIR/optional${NORMAL}"
-  md5sum /tmp/slimserver.tcz > $TCEDIR/optional/slimserver.tcz.md5.txt
-  mv -f /tmp/slimserver.tcz $TCEDIR/optional
-  chown tc.staff $TCEDIR/optional/slimserver.tcz*
-  echo
-  echo "${GREEN}Syncing filesystems${NORMAL}"
-  sync
-  echo "${GREEN}Loading new Extension${NORMAL}"
-  su - tc -c "tce-load -li slimserver.tcz"
-  echo "${GREEN}Starting LMS${NORMAL}"
-  /bin/sh -c "/usr/local/etc/init.d/slimserver start"
-  echo
-else 
+  if [ -n "$RELOAD" ]; then
+    echo "${BLUE}Ready to Reload LMS, Press Enter to Continue${NORMAL}"
+    [ -z "$UNATTENDED" ] && read key
+    echo "${GREEN}Stopping LMS${NORMAL}"
+    /usr/local/etc/init.d/slimserver stop
+    echo "${GREEN}Unmounting Extension${NORMAL}"
+    umount /tmp/tcloop/slimserver
+    rm -f /usr/local/tce.installed/slimserver
+    echo "${GREEN}Moving new Extension to $TCEDIR/optional${NORMAL}"
+    md5sum /tmp/slimserver.tcz > $TCEDIR/optional/slimserver.tcz.md5.txt
+    mv -f /tmp/slimserver.tcz $TCEDIR/optional
+    chown tc.staff $TCEDIR/optional/slimserver.tcz*
+    echo
+    echo "${GREEN}Syncing filesystems${NORMAL}"
+    sync
+    echo "${GREEN}Loading new Extension${NORMAL}"
+    su - tc -c "tce-load -li slimserver.tcz"
+    echo "${GREEN}Starting LMS${NORMAL}"
+    /bin/sh -c "/usr/local/etc/init.d/slimserver start"
+    echo
+  else
+    echo "${GREEN}Moving new Extension to $TCEDIR/optional${NORMAL}"
+    md5sum /tmp/slimserver.tcz > $TCEDIR/optional/slimserver.tcz.md5.txt
+    mv -f /tmp/slimserver.tcz $TCEDIR/optional
+    chown tc.staff $TCEDIR/optional/slimserver.tcz*
+    echo
+    echo "${GREEN}Syncing filesystems${NORMAL}"
+    sync
+    echo
+    echo "${BLUE}Extension copied and will be loaded on next reboot${NORMAL}"
+  fi
+else
+  md5sum /tmp/slimserver.tcz > /tmp/slimserver.tcz.md5.txt
   echo
   echo -e "${BLUE}Done, the new extension was left at /tmp/slimserver.tcz"
   echo
@@ -296,7 +332,7 @@ fi
 echo
 echo "${BLUE}Press Enter to Cleanup and exit${NORMAL}"
 echo
-[ -z "$UNATTENDED" ] && read gagme
+[ -z "$UNATTENDED" ] && read key
 
 if [ -z "$DEBUG" ]; then
 	echo -e "${GREEN}Deleting the temp folders"
