@@ -1,5 +1,11 @@
 package Slim::Utils::OS::Custom;
 
+# Custom OS file for piCore 7.x   http://www.tinycore.net
+#
+# This version only downloads the update link to
+# /tmp/slimupdate/update_url
+#
+
 use strict;
 use warnings;
 use Config;

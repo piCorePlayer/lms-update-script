@@ -19,31 +19,31 @@ NEWARGS="${@}"
 GIT_REPO="https://raw.githubusercontent.com/paul-1/lms-update-script/Master"
 
 usage(){
-  echo "  usage: $0 [-u] [-d] [-m] [-r] [-s] [-t]"
-  echo "            -u Unattended Execution"
-  echo "            -d Debug, Temp files not erased"
-  echo "            -m Manual download Link Check for LMS update"
-  echo "            -r Reload LMS after Update"
-  echo "            -s Skip Update from GitHub"
-  echo "            -t Test building, but do not move extension to tce directory"
-  echo
+	echo "  usage: $0 [-u] [-d] [-m] [-r] [-s] [-t]"
+	echo "            -u Unattended Execution"
+	echo "            -d Debug, Temp files not erased"
+	echo "            -m Manual download Link Check for LMS update"
+	echo "            -r Reload LMS after Update"
+	echo "            -s Skip Update from GitHub"
+	echo "            -t Test building, but do not move extension to tce directory"
+	echo
 }
 
 while [ $# -gt 0 ]
 do
-    case "$1" in
-	-u)  UNATTENDED=1;;
-	-d)  DEBUG=1;;
-	-m)  MANUAL=1;;
-	-r)  RELOAD=1;;
-	-t)  TEST=1;;
-	-s)  SKIPUPDATE=1;;
-        --)	shift; break;;
-        -*)  usage
+	case "$1" in
+		-u)  UNATTENDED=1;;
+		-d)  DEBUG=1;;
+		-m)  MANUAL=1;;
+		-r)  RELOAD=1;;
+		-t)  TEST=1;;
+		-s)  SKIPUPDATE=1;;
+		--)	shift; break;;
+		-*)  usage
 		exit 1;;
-    	*)  break;;	# terminate while loop
-    esac
-    shift
+		*)  break;;	# terminate while loop
+	esac
+	shift
 done
 
 [ -z "$UNATTENDED" ] && clear
@@ -67,82 +67,82 @@ echo "Press Enter to continue, or Ctrl-c to exit and change options${NORMAL}"
 [ -z "$UNATTENDED" ] && read key
 
 if [ "$SKIPUPDATE" != "1" ]; then
-  #Check for depednancy of openssl for wget to work with https://
-  if [ ! -x /usr/local/bin/openssl ]; then
-	if  [ ! -f $TCEDIR/optional/openssl.tcz ]; then
-		echo "${GREEN} Downloading required extension openssl.tcz${NORMAL}"
-		echo
-		su - tc -c "tce-load -liw openssl.tcz"
-	else
-		echo "${GREEN} Loading Local Extension openssl.tcz${NORMAL}"
-		echo
-		su - tc -c "tce-load -li openssl.tcz"
+#Check for depednancy of openssl for wget to work with https://
+	if [ ! -x /usr/local/bin/openssl ]; then
+		if  [ ! -f $TCEDIR/optional/openssl.tcz ]; then
+			echo "${GREEN} Downloading required extension openssl.tcz${NORMAL}"
+			echo
+			su - tc -c "tce-load -liw openssl.tcz"
+		else
+			echo "${GREEN} Loading Local Extension openssl.tcz${NORMAL}"
+			echo
+			su - tc -c "tce-load -li openssl.tcz"
+		fi
+		if [ "$?" != "0" ]; then echo "${RED}Failed to load required extension!. ${NORMAL} Check by manually installing	extension openssl.tcz"; exit 1; fi
 	fi
-	if [ "$?" != "0" ]; then echo "${RED}Failed to load required extension!. ${NORMAL} Check by manually installing	extension openssl.tcz"; exit 1; fi
-  fi
 
-  echo "${GREEN}Updateing Script from Github..."
-  FILES="lms-update.sh custom-strings.txt picore-update.html Custom.pm"
-  for F in $FILES
-  do
-	rm -f ${DL_DIR}/${F}
-    wget -O ${DL_DIR}/${F} ${GIT_REPO}/${F}
-    if [ "$?" != "0" ]; then 
-      echo "${RED}Download FAILED......Please Check or Relauch script with with -s option!${NORMAL}"
-      exit 1
-    fi
-  done
+	echo "${GREEN}Updateing Script from Github..."
+	FILES="lms-update.sh custom-strings.txt picore-update.html Custom.pm"
+	for F in $FILES
+	do
+		rm -f ${DL_DIR}/${F}
+		wget -O ${DL_DIR}/${F} ${GIT_REPO}/${F}
+		if [ "$?" != "0" ]; then
+			echo "${RED}Download FAILED......Please Check or Relauch script with with -s option!${NORMAL}"
+			exit 1
+		fi
+	done
 
-  echo "${GREEN}Relaunching Script in 3 seconds${NORMAL}"
-  chmod 755 ${DL_DIR}/lms-update.sh
-  sleep 3
-  set -- "-s" $NEWARGS
-  exec /bin/sh ${DL_DIR}/lms-update.sh "${@}"
+	echo "${GREEN}Relaunching Script in 3 seconds${NORMAL}"
+	chmod 755 ${DL_DIR}/lms-update.sh
+	sleep 3
+	set -- "-s" $NEWARGS
+	exec /bin/sh ${DL_DIR}/lms-update.sh "${@}"
 fi
 
 
 if [ -z "$MANUAL" ]; then
-  if [ -f  "${UPDATELINK}" ]; then
-    read LINK < $UPDATELINK
-  else
-    LINK=""
-  fi
+	if [ -f  "${UPDATELINK}" ]; then
+		read LINK < $UPDATELINK
+	else
+		LINK=""
+	fi
 else
-  echo "${YELLOW}Performing manual check for update link${NORMAL}"
-  tmp=`mktemp`
-  wget "http://www.mysqueezebox.com/update/?version=7.9.0&revision=1&geturl=1&os=nocpan" -O $tmp
-  if [ "$?" != "0" ]; then echo "${RED}Unable to Contact Download Server!${NORMAL}"; rm $tmp; exit 1; fi
-  read LINK < $tmp
-  rm -f $tmp
+	echo "${YELLOW}Performing manual check for update link${NORMAL}"
+	tmp=`mktemp`
+	wget "http://www.mysqueezebox.com/update/?version=7.9.0&revision=1&geturl=1&os=nocpan" -O $tmp
+	if [ "$?" != "0" ]; then echo "${RED}Unable to Contact Download Server!${NORMAL}"; rm $tmp; exit 1; fi
+	read LINK < $tmp
+	rm -f $tmp
 fi
 
 if [ -z $LINK ]; then
 #   No Update needed
-  if [ -z "$MANUAL" ]; then
-    echo
-    echo "${BLUE}No update link found.   THis either means that there is no update, or you do not have automatic update"
-    echo "checks and automatic downloads enabled in the LMS settings."
-    echo 
-    echo "If you would like to manually check for updates using a static update check, please relaunch this script"
-    echo "using the -m command line switch${NORMAL}"
-    echo "DONE"
-    exit 0
-  else
-    echo "${BLUE}No update found."
-    echo "DONE.${NORMAL}"
-    exit 0
-  fi
+	if [ -z "$MANUAL" ]; then
+		echo
+		echo "${BLUE}No update link found.   THis either means that there is no update, or you do not have automatic update"
+		echo "checks and automatic downloads enabled in the LMS settings."
+		echo
+		echo "If you would like to manually check for updates using a static update check, please relaunch this script"
+		echo "using the -m command line switch${NORMAL}"
+		echo "DONE"
+		exit 0
+	else
+		echo "${BLUE}No update found."
+		echo "DONE.${NORMAL}"
+		exit 0
+	fi
 else
-  echo
-  echo "${GREEN}Downloading update from ${LINK}"
+	echo
+	echo "${GREEN}Downloading update from ${LINK}"
 fi
 
 rm -f $DL_DIR/*.tgz
 wget -P $DL_DIR $LINK
 if [ "$?" != "0" ]; then
-  echo "${RED}Download FAILED...... exiting!${NORMAL}"
-  [ -n "$DEBUG" ] || rm -f $DL_DIR/'*.tgz'
-  exit 1
+	echo "${RED}Download FAILED...... exiting!${NORMAL}"
+	[ -n "$DEBUG" ] || rm -f $DL_DIR/'*.tgz'
+	exit 1
 fi
 
 NEWUPDATE=`find ${DL_DIR} -name "*.tgz"`
@@ -180,9 +180,9 @@ f=`mktemp`
 rotdash $!
 read e < $f
 if [ "$e" != "0" ]; then
-  echo "${RED}File Extraction FAILED.....exiting!${NORMAL}"
-  [ -n "$DEBUG" ] || rm -rf $SRC_DIR
-  exit 1
+	echo "${RED}File Extraction FAILED.....exiting!${NORMAL}"
+	[ -n "$DEBUG" ] || rm -rf $SRC_DIR
+	exit 1
 fi
 rm -f $f
 
@@ -213,27 +213,27 @@ mv $SRC_DIR/*-noCPAN $BUILD_DIR/usr/local/slimserver
 FDIR="usr/local/slimserver/Slim/Utils/OS"
 F="Custom.pm"
 if [ -e ${DL_DIR}/${F} ]; then  # Copy Updated Version
-  cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
+	cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
 else   # Copy version from current Extension
-  cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
+	cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
 fi
 [ "$?" != "0" ] && echo -n "1" > $f
 
 FDIR="usr/local/slimserver/HTML/EN/html/docs"
 F="picore-update.html"
 if [ -e ${DL_DIR}/${F} ]; then  # Copy Updated Version
-  cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
+	cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
 else   # Copy version from current Extension
-  cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
+	cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
 fi
 [ "$?" != "0" ] && echo -n "1" > $f
 
 FDIR="usr/local/slimserver"
 F="custom-strings.txt"
 if [ -e ${DL_DIR}/${F} ]; then  # Copy Updated Version
-  cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
+	cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
 else   # Copy version from current Extension
-  cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
+	cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
 fi
 [ "$?" != "0" ] && echo -n "1" > $f
 
@@ -257,9 +257,9 @@ FDIR="usr/local/bin"
 F="lms-update.sh"
 echo "${DL_DIR}/${F}"
 if [ -x "${DL_DIR}/${F}" ]; then  # Copy Updated Version
-  cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
+	cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
 else   # Copy version from current Extension
-  cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
+	cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
 fi
 [ "$?" != "0" ] && echo -n "1" > $f
 
@@ -268,9 +268,9 @@ fi
 rotdash $!
 read e < $f
 if [ "$e" != "0" ]; then
-  echo "${RED}Update FAILED.....exiting!${NORMAL}"
-  [ -n "$DEBUG" ] || (rm -rf $SRC_DIR; rm -rf $BUILD_DIR)
-  exit 1
+	echo "${RED}Update FAILED.....exiting!${NORMAL}"
+	[ -n "$DEBUG" ] || (rm -rf $SRC_DIR; rm -rf $BUILD_DIR)
+	exit 1
 fi
 rm -f $f
 
@@ -286,48 +286,68 @@ echo "${GREEN}Creating extension, it may take a while ... especially on rpi 0/A/
 
 mksquashfs $BUILD_DIR /tmp/slimserver.tcz -noappend -force-uid 0 -force-gid 50
 if [ "$?" != "0" ]; then 
-  echo "${RED}Building Extension FAILED...... exiting!${NORMAL}"
-  [ -n "$DEBUG" ] || (rm -rf $SRC_DIR; rm -rf $BUILD_DIR)
-  exit 1
+	echo "${RED}Building Extension FAILED...... exiting!${NORMAL}"
+	[ -n "$DEBUG" ] || (rm -rf $SRC_DIR; rm -rf $BUILD_DIR)
+	exit 1
 fi
 
+REBOOT=""
 if [ -z "$TEST" ]; then
-  if [ -n "$RELOAD" ]; then
-    echo "${BLUE}Ready to Reload LMS, Press Enter to Continue${NORMAL}"
-    [ -z "$UNATTENDED" ] && read key
-    echo "${GREEN}Stopping LMS${NORMAL}"
-    /usr/local/etc/init.d/slimserver stop
-    echo "${GREEN}Unmounting Extension${NORMAL}"
-    umount /tmp/tcloop/slimserver
-    rm -f /usr/local/tce.installed/slimserver
-    echo "${GREEN}Moving new Extension to $TCEDIR/optional${NORMAL}"
-    md5sum /tmp/slimserver.tcz > $TCEDIR/optional/slimserver.tcz.md5.txt
-    mv -f /tmp/slimserver.tcz $TCEDIR/optional
-    chown tc.staff $TCEDIR/optional/slimserver.tcz*
-    echo
-    echo "${GREEN}Syncing filesystems${NORMAL}"
-    sync
-    echo "${GREEN}Loading new Extension${NORMAL}"
-    su - tc -c "tce-load -li slimserver.tcz"
-    echo "${GREEN}Starting LMS${NORMAL}"
-    /bin/sh -c "/usr/local/etc/init.d/slimserver start"
-    echo
-  else
-    echo "${GREEN}Moving new Extension to $TCEDIR/optional${NORMAL}"
-    md5sum /tmp/slimserver.tcz > $TCEDIR/optional/slimserver.tcz.md5.txt
-    mv -f /tmp/slimserver.tcz $TCEDIR/optional
-    chown tc.staff $TCEDIR/optional/slimserver.tcz*
-    echo
-    echo "${GREEN}Syncing filesystems${NORMAL}"
-    sync
-    echo
-    echo "${BLUE}Extension copied and will be loaded on next reboot${NORMAL}"
-  fi
+	if [ -n "$RELOAD" ]; then
+		echo "${BLUE}Ready to Reload LMS, Press Enter to Continue${NORMAL}"
+		[ -z "$UNATTENDED" ] && read key
+		echo "${GREEN}Stopping LMS${NORMAL}"
+		/usr/local/etc/init.d/slimserver stop
+		sleep 3
+		echo "${GREEN}Unmounting Extension${NORMAL}"
+		umount -d /tmp/tcloop/slimserver
+		if [ "$?" != "0" ]; then 
+			echo "${RED}Unmount failed.......Forcing unmount"
+			umount -d -f /tmp/tcloop/slimserver
+			if [ "$?" != "0" ]; then
+				echo "${RED}Unmounting Filesystem failed......extension will be replaced, but reboot is requried${NORMAL}"
+				REBOOT=1
+			fi
+		fi
+		rm -f /usr/local/tce.installed/slimserver
+		echo "${GREEN}Moving new Extension to $TCEDIR/optional${NORMAL}"
+		md5sum /tmp/slimserver.tcz > $TCEDIR/optional/slimserver.tcz.md5.txt
+		mv -f /tmp/slimserver.tcz $TCEDIR/optional
+		chown tc.staff $TCEDIR/optional/slimserver.tcz*
+		echo
+		echo "${GREEN}Syncing filesystems${NORMAL}"
+		sync
+		if [ -z "$REBOOT" ]; then
+			echo "${GREEN}Loading new Extension${NORMAL}"
+			su - tc -c "tce-load -li slimserver.tcz"
+			if [ "$?" != "0" ]; then
+				echo "${RED}Problem Mounting new slimserver extension. Please check errors"
+				echo "Might just need to reboot${NORMAL}"
+			else
+				echo "${GREEN}Starting LMS${NORMAL}"
+				/bin/sh -c "/usr/local/etc/init.d/slimserver start"
+				echo
+			fi
+		else
+			echo
+			echo "${BLUE}Extension copied and will be loaded on next reboot${NORMAL}"
+		fi
+	else
+		echo "${GREEN}Moving new Extension to $TCEDIR/optional${NORMAL}"
+		md5sum /tmp/slimserver.tcz > $TCEDIR/optional/slimserver.tcz.md5.txt
+		mv -f /tmp/slimserver.tcz $TCEDIR/optional
+		chown tc.staff $TCEDIR/optional/slimserver.tcz*
+		echo
+		echo "${GREEN}Syncing filesystems${NORMAL}"
+		sync
+		echo
+		echo "${BLUE}Extension copied and will be loaded on next reboot${NORMAL}"
+	fi
 else
-  md5sum /tmp/slimserver.tcz > /tmp/slimserver.tcz.md5.txt
-  echo
-  echo -e "${BLUE}Done, the new extension was left at /tmp/slimserver.tcz"
-  echo
+	md5sum /tmp/slimserver.tcz > /tmp/slimserver.tcz.md5.txt
+	echo
+	echo -e "${BLUE}Done, the new extension was left at /tmp/slimserver.tcz"
+	echo
 fi
 echo
 echo "${BLUE}Press Enter to Cleanup and exit${NORMAL}"
