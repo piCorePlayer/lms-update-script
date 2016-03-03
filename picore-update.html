@@ -1,7 +1,7 @@
 [%# Helper web page for piCore and piCorePlayer with instructions as to how to 
 	update slimserver.
 	
-	Revision 0.3b
+	Revision 0.4b
 %]
 
 [% pagetitle = 'How to update your Logitech Media Server on your piCore system' %]
@@ -23,7 +23,7 @@ These will update your local copy of LMS to the latest source code.<p>
 <ul style="direction: ltr;">
 	<li>Log in to your server machine using your username and password.</li>
 	<li>Run the following command to execute the installer</li>
-	<li><code>sudo [% distro == 'tgz' ? 'lms-update.sh ' : 'Error' %] </code></li>
+	<li><code>sudo [% distro == 'tgz' ? 'lms-update.sh -r ' : 'Error' %] </code></li>
 </ul>
 <br>
 <p>For users of piCorePlayer please use 
