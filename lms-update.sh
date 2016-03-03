@@ -9,6 +9,11 @@
 #  Original script concept by jgrulich
 #
 #
+#  Most common usage will be 'sudo lms-update.sh -u -r'
+#
+#  Revision .3b
+#
+
 . /etc/init.d/tc-functions
 
 checkroot
@@ -298,7 +303,10 @@ if [ -z "$TEST" ]; then
 		[ -z "$UNATTENDED" ] && read key
 		echo "${GREEN}Stopping LMS${NORMAL}"
 		/usr/local/etc/init.d/slimserver stop
-		sleep 3
+		if [ "$?" != "0" ]; then
+			echo "${RED}Extension will be replace, but a reboot will be requied when finished"
+			REBOOT=1
+		fi
 		echo "${GREEN}Unmounting Extension${NORMAL}"
 		umount -d /tmp/tcloop/slimserver
 		if [ "$?" != "0" ]; then 
