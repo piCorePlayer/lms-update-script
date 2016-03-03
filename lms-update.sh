@@ -11,7 +11,7 @@
 #
 #  Most common usage will be 'sudo lms-update.sh -u -r'
 #
-#  Revision .3b
+#  Revision .4b
 #
 
 . /etc/init.d/tc-functions
@@ -308,9 +308,12 @@ if [ -z "$TEST" ]; then
 			REBOOT=1
 		fi
 		echo "${GREEN}Unmounting Extension${NORMAL}"
+		sleep 1  ##seems to help with file system busy errors
+		sync
 		umount -d /tmp/tcloop/slimserver
 		if [ "$?" != "0" ]; then 
 			echo "${RED}Unmount failed.......Forcing unmount"
+			sleep 3
 			umount -d -f /tmp/tcloop/slimserver
 			if [ "$?" != "0" ]; then
 				echo "${RED}Unmounting Filesystem failed......extension will be replaced, but reboot is requried${NORMAL}"
