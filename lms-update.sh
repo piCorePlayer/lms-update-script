@@ -301,23 +301,33 @@ if [ -z "$TEST" ]; then
 	if [ -n "$RELOAD" ]; then
 		echo "${BLUE}Ready to Reload LMS, Press Enter to Continue${NORMAL}"
 		[ -z "$UNATTENDED" ] && read key
-		echo "${GREEN}Stopping LMS${NORMAL}"
+		echo "${GREEN}Stopping LMS"
 		/usr/local/etc/init.d/slimserver stop
 		if [ "$?" != "0" ]; then
-			echo "${RED}Extension will be replace, but a reboot will be requied when finished"
+			echo "${RED}Extension will be replaced, but a reboot will be requied when finished"
 			REBOOT=1
 		fi
-		echo "${GREEN}Unmounting Extension${NORMAL}"
-		sleep 1  ##seems to help with file system busy errors
-		sync
-		umount -d /tmp/tcloop/slimserver
-		if [ "$?" != "0" ]; then 
-			echo "${RED}Unmount failed.......Forcing unmount"
-			sleep 3
-			umount -d -f /tmp/tcloop/slimserver
-			if [ "$?" != "0" ]; then
-				echo "${RED}Unmounting Filesystem failed......extension will be replaced, but reboot is requried${NORMAL}"
-				REBOOT=1
+		echo "${GREEN}Waiting for File Handles to Close"
+		CNT=0
+		until ! lsof | grep -q /tmp/tcloop/slimserver
+		do
+			[ $((CNT++)) -gt 10 ] && break || sleep 1
+		done
+		if [ $CNT -gt 10 ]; then
+			echo "${RED}Drive is still busy, Extension will be replaced, but a reboot will be requied when finished"
+		 	REBOOT=1
+		fi
+		if [ -z "$REBOOT" ]; then
+			echo "${GREEN}Unmounting Extension${NORMAL}"
+			umount -d /tmp/tcloop/slimserver
+			if [ "$?" != "0" ]; then 
+				echo "${RED}Unmount failed.......Forcing unmount"
+				sleep 3
+				umount -d -f /tmp/tcloop/slimserver
+				if [ "$?" != "0" ]; then
+					echo "${RED}Unmounting Filesystem failed......extension will be replaced, but reboot is requried${NORMAL}"
+					REBOOT=1
+				fi
 			fi
 		fi
 		rm -f /usr/local/tce.installed/slimserver
@@ -335,7 +345,7 @@ if [ -z "$TEST" ]; then
 				echo "${RED}Problem Mounting new slimserver extension. Please check errors"
 				echo "Might just need to reboot${NORMAL}"
 			else
-				echo "${GREEN}Starting LMS${NORMAL}"
+				echo "${GREEN}Starting New Version of LMS${NORMAL}"
 				/bin/sh -c "/usr/local/etc/init.d/slimserver start"
 				echo
 			fi
