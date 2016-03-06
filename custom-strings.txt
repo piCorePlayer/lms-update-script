@@ -1,6 +1,6 @@
 # Custom String File for piCore and piCorePlayer.
 #
-# Release .3beta
+# Release 1.0
 #
 PICORE_UPDATE_AVAILABLE
 	EN	A new version of Logitech Media Server is available (%s). <a href="/html/docs/picore-update.html?installerFile=%s" target="update">Click here for further information</a>.         

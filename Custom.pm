@@ -5,7 +5,7 @@ package Slim::Utils::OS::Custom;
 # This version only downloads the update link to
 # /tmp/slimupdate/update_url
 #
-# Revision .3b
+# Revision 1.0
 
 use strict;
 use warnings;

@@ -9,9 +9,9 @@
 #  Original script concept by jgrulich
 #
 #
-#  Most common usage will be 'sudo lms-update.sh -u -r'
+#  Most common usage will be 'sudo lms-update.sh -r'
 #
-#  Revision .4b
+#  Revision 1.0
 #
 
 . /etc/init.d/tc-functions
@@ -110,18 +110,19 @@ if [ -z "$MANUAL" ]; then
 	if [ -f  "${UPDATELINK}" ]; then
 		read LINK < $UPDATELINK
 	else
-		LINK=""
+		LINK="0"
 	fi
 else
-	echo "${YELLOW}Performing manual check for update link${NORMAL}"
+	CURVER=$(head -n 1 /usr/local/slimserver/revision.txt)
+	echo "${YELLOW}Performing manual check for update link, Current Version is: $CURVER.${NORMAL}"
 	tmp=`mktemp`
-	wget "http://www.mysqueezebox.com/update/?version=7.9.0&revision=1&geturl=1&os=nocpan" -O $tmp
+	wget "http://www.mysqueezebox.com/update/?version=7.9.0&revision=${CURVER}&geturl=1&os=nocpan" -O $tmp
 	if [ "$?" != "0" ]; then echo "${RED}Unable to Contact Download Server!${NORMAL}"; rm $tmp; exit 1; fi
 	read LINK < $tmp
 	rm -f $tmp
 fi
 
-if [ -z $LINK ]; then
+if [ "$LINK" = "0" ]; then
 #   No Update needed
 	if [ -z "$MANUAL" ]; then
 		echo
@@ -129,11 +130,13 @@ if [ -z $LINK ]; then
 		echo "checks and automatic downloads enabled in the LMS settings."
 		echo
 		echo "If you would like to manually check for updates using a static update check, please relaunch this script"
-		echo "using the -m command line switch${NORMAL}"
-		echo "DONE"
+		echo "using the -m command line switch"
+		echo
+		echo "DONE${NORMAL}"
 		exit 0
 	else
-		echo "${BLUE}No update found."
+		echo "${BLUE}Revision $CURVER is the latest. No Update Needed."
+		echo
 		echo "DONE.${NORMAL}"
 		exit 0
 	fi
