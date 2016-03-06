@@ -22,17 +22,20 @@ DL_DIR="/tmp/slimupdate"
 UPDATELINK="${DL_DIR}/update_url"
 NEWARGS="${@}"
 GIT_REPO="https://raw.githubusercontent.com/paul-1/lms-update-script/Master"
+[ -d ${DL_DIR} ] || mkdir -p ${DL_DIR}
 
 usage(){
 	echo "  usage: $0 [-u] [-d] [-m] [-r] [-s] [-t]"
 	echo "            -u Unattended Execution"
 	echo "            -d Debug, Temp files not erased"
-	echo "            -m Manual download Link Check for LMS update"
+	echo "            -m Manual download Link Check for LMS update"  #this method could break when there is a change on LMS from 7.9.0
 	echo "            -r Reload LMS after Update"
 	echo "            -s Skip Update from GitHub"
 	echo "            -t Test building, but do not move extension to tce directory"
 	echo
 }
+
+echo "run"
 
 while [ $# -gt 0 ]
 do
@@ -43,6 +46,7 @@ do
 		-r)  RELOAD=1;;
 		-t)  TEST=1;;
 		-s)  SKIPUPDATE=1;;
+		-sss) RESUME=1;;  #For script relaunch use only, do not use from
 		--)	shift; break;;
 		-*)  usage
 		exit 1;;
@@ -51,60 +55,69 @@ do
 	shift
 done
 
-[ -z "$UNATTENDED" ] && clear
+if [ -z "$RESUME" ]; then
+	[ -z "$UNATTENDED" ] && clear
 
-echo
-echo "${BLUE}###############################################################"
-echo
-echo "  This script will update the Logitech Media Server extension  "
-echo
-usage
-[ -n "$UNATTENDED" ] && echo "       Unattended Operation Enabled"
-[ -n "$DEBUG" ] && echo "       Debug Enabled"
-[ -n "$MANUAL" ] && echo "       Manual Download Link Check Enabled"
-[ -n "$RELOAD" ] && echo "       Automatic Reload Enabled"
-[ -n "$SKIPUPDATE" ] && echo "       Skipping Update"
-[ -n "$TEST" ] && echo "       Test Mode Enabled"
-echo "###############################################################"
-echo
-echo "Press Enter to continue, or Ctrl-c to exit and change options${NORMAL}"
+	echo
+	echo "${BLUE}###############################################################"
+	echo
+	echo "  This script will update the Logitech Media Server extension  "
+	echo
+	usage
+	[ -n "$UNATTENDED" ] && echo "       Unattended Operation Enabled"
+	[ -n "$DEBUG" ] && echo "       Debug Enabled"
+	[ -n "$MANUAL" ] && echo "       Manual Download Link Check Enabled"
+	[ -n "$RELOAD" ] && echo "       Automatic Reload Enabled"
+	[ -n "$SKIPUPDATE" ] && echo "       Skipping Update"
+	[ -n "$TEST" ] && echo "       Test Mode Enabled"
+	echo "###############################################################"
+	echo
+	echo "Press Enter to continue, or Ctrl-c to exit and change options${NORMAL}"
 
-[ -z "$UNATTENDED" ] && read key
+	[ -z "$UNATTENDED" ] && read key
 
-if [ "$SKIPUPDATE" != "1" ]; then
-#Check for depednancy of openssl for wget to work with https://
-	if [ ! -x /usr/local/bin/openssl ]; then
-		if  [ ! -f $TCEDIR/optional/openssl.tcz ]; then
-			echo "${GREEN} Downloading required extension openssl.tcz${NORMAL}"
-			echo
-			su - tc -c "tce-load -liw openssl.tcz"
-		else
-			echo "${GREEN} Loading Local Extension openssl.tcz${NORMAL}"
-			echo
-			su - tc -c "tce-load -li openssl.tcz"
+	if [ "$SKIPUPDATE" != "1" ]; then
+	#Check for depednancy of openssl for wget to work with https://
+		if [ ! -x /usr/local/bin/openssl ]; then
+			if  [ ! -f $TCEDIR/optional/openssl.tcz ]; then
+				echo "${GREEN} Downloading required extension openssl.tcz${NORMAL}"
+				echo
+				su - tc -c "tce-load -liw openssl.tcz"
+			else
+				echo "${GREEN} Loading Local Extension openssl.tcz${NORMAL}"
+				echo
+				su - tc -c "tce-load -li openssl.tcz"
+			fi
+			if [ "$?" != "0" ]; then echo "${RED}Failed to load required extension!. ${NORMAL} Check by manually installing	extension openssl.tcz"; exit 1; fi
 		fi
-		if [ "$?" != "0" ]; then echo "${RED}Failed to load required extension!. ${NORMAL} Check by manually installing	extension openssl.tcz"; exit 1; fi
+
+		echo "${GREEN}Updateing Script from Github..."
+		FILES="lms-update.sh custom-strings.txt picore-update.html Custom.pm"
+		for F in $FILES
+		do
+			rm -f ${DL_DIR}/${F}
+			wget -O ${DL_DIR}/${F} ${GIT_REPO}/${F}
+			if [ "$?" != "0" ]; then
+				echo "${RED}Download FAILED......Please Check or Relauch script with with -s option!${NORMAL}"
+				exit 1
+			fi
+		done
+
+		echo "${GREEN}Relaunching Script in 3 seconds${NORMAL}"
+		chmod 755 ${DL_DIR}/lms-update.sh
+		sleep 3
+		set -- "-sss" $NEWARGS
+		exec /bin/sh ${DL_DIR}/lms-update.sh "${@}"
+	else
+		#if we are going to dismount drive to automatically reload extension, we cannot run lms-update.sh from /usr/local/bin
+		if [ -n "$RELOAD" ]; then
+			echo "${GREEN}Copying and Running script to tmp so we can automatically reload LMS later"
+			cp -f /usr/local/bin/lms-update.sh ${DL_DIR}/lms-update.sh
+			set -- "-sss" $NEWARGS
+			exec /bin/sh ${DL_DIR}/lms-update.sh "${@}"
+		fi
 	fi
-
-	echo "${GREEN}Updateing Script from Github..."
-	FILES="lms-update.sh custom-strings.txt picore-update.html Custom.pm"
-	for F in $FILES
-	do
-		rm -f ${DL_DIR}/${F}
-		wget -O ${DL_DIR}/${F} ${GIT_REPO}/${F}
-		if [ "$?" != "0" ]; then
-			echo "${RED}Download FAILED......Please Check or Relauch script with with -s option!${NORMAL}"
-			exit 1
-		fi
-	done
-
-	echo "${GREEN}Relaunching Script in 3 seconds${NORMAL}"
-	chmod 755 ${DL_DIR}/lms-update.sh
-	sleep 3
-	set -- "-s" $NEWARGS
-	exec /bin/sh ${DL_DIR}/lms-update.sh "${@}"
 fi
-
 
 if [ -z "$MANUAL" ]; then
 	if [ -f  "${UPDATELINK}" ]; then
@@ -322,15 +335,10 @@ if [ -z "$TEST" ]; then
 		fi
 		if [ -z "$REBOOT" ]; then
 			echo "${GREEN}Unmounting Extension${NORMAL}"
-			umount -d /tmp/tcloop/slimserver
+			umount -d -f /tmp/tcloop/slimserver
 			if [ "$?" != "0" ]; then 
-				echo "${RED}Unmount failed.......Forcing unmount"
-				sleep 3
-				umount -d -f /tmp/tcloop/slimserver
-				if [ "$?" != "0" ]; then
-					echo "${RED}Unmounting Filesystem failed......extension will be replaced, but reboot is requried${NORMAL}"
-					REBOOT=1
-				fi
+				echo "${RED}Unmounting Filesystem failed......extension will be replaced, but reboot is requried${NORMAL}"
+				REBOOT=1
 			fi
 		fi
 		rm -f /usr/local/tce.installed/slimserver
