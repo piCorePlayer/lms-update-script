@@ -112,6 +112,13 @@ sub dirsFor {
 	return wantarray() ? @dirs : $dirs[0];
 }
 
+sub initPrefs {
+	my ($class, $defaults) = @_;
+	
+	$defaults->{checkVersionInterval} = '2592000';
+	$defaults->{checkVersionLastTime} = 1458146048;
+}
+
 sub canAutoUpdate { 1 }
 sub runningFromSource { 0 }
 sub installerExtension { 'tgz' }
