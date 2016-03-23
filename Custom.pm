@@ -119,6 +119,9 @@ sub initPrefs {
 	$defaults->{checkVersionLastTime} = 1458146048;
 }
 
+# don't download/cache firmware for other players, but have them download directly
+sub directFirmwareDownload { 1 };
+
 sub canAutoUpdate { 1 }
 sub runningFromSource { 0 }
 sub installerExtension { 'tgz' }
