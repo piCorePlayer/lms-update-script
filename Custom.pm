@@ -17,14 +17,14 @@ use base qw(Slim::Utils::OS);
 use constant MAX_LOGSIZE => 1024*1024*1; # maximum log size: 1 MB
 
 sub name {
-	return 'piCore';
+	return 'unix';
 }
 
 sub initDetails {
 	my $class = shift;
 
-	$class->{osDetails}->{'os'} = 'piCore';
-	$class->{osDetails}->{osName} = $Config{'osname'} || 'piCore';
+	$class->{osDetails}->{'os'} = 'Linux';
+	$class->{osDetails}->{osName} = 'piCore';
 	$class->{osDetails}->{uid}    = getpwuid($>);
 	$class->{osDetails}->{osArch} = $Config{'myarchname'};
 
