@@ -342,6 +342,7 @@ if [ -z "$TEST" ]; then
 		rm -f /usr/local/tce.installed/slimserver
 		echo "${GREEN}Moving new Extension to $TCEDIR/optional${NORMAL}"
 		md5sum /tmp/slimserver.tcz > $TCEDIR/optional/slimserver.tcz.md5.txt
+		sed -i 's|/tmp/||' $TCEDIR/optional/slimserver.tcz.md5.txt
 		mv -f /tmp/slimserver.tcz $TCEDIR/optional
 		chown tc.staff $TCEDIR/optional/slimserver.tcz*
 		echo
@@ -365,6 +366,7 @@ if [ -z "$TEST" ]; then
 	else
 		echo "${GREEN}Moving new Extension to $TCEDIR/optional${NORMAL}"
 		md5sum /tmp/slimserver.tcz > $TCEDIR/optional/slimserver.tcz.md5.txt
+		sed -i 's|/tmp/||' $TCEDIR/optional/slimserver.tcz.md5.txt
 		mv -f /tmp/slimserver.tcz $TCEDIR/optional
 		chown tc.staff $TCEDIR/optional/slimserver.tcz*
 		echo
@@ -375,6 +377,7 @@ if [ -z "$TEST" ]; then
 	fi
 else
 	md5sum /tmp/slimserver.tcz > /tmp/slimserver.tcz.md5.txt
+	sed -i 's|/tmp/||' /tmp/slimserver.tcz.md5.txt
 	echo
 	echo -e "${BLUE}Done, the new extension was left at /tmp/slimserver.tcz"
 	echo
