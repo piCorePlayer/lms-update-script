@@ -1,0 +1,139 @@
+#!/bin/sh
+
+# By paul_123 Jan 21, 2016
+#
+# Cache and Prefs must be on a persistent device.
+#
+# Username and group is tc/staff by default.  You can create a new userid
+# CFG_FILE is can be created to change default directories.
+#       File is an executable script that must define.
+
+CFG_FILE="/home/tc/.slimserver.cfg"
+TCEDIR=$(readlink "/etc/sysconfig/tcedir")
+
+if [ -f "$CFG_FILE" ]; then
+	. $CFG_FILE
+fi
+
+#Set Default Settings if not defined in CFG_FILE
+[ -n "$CACHE" ] || CACHE=$TCEDIR/slimserver/Cache
+[ -n "$LOGS" ] || LOGS=/var/log/slimserver
+[ -n "$PREFS" ] || PREFS=$TCEDIR/slimserver/prefs
+[ -n "$LMSUSER" ] || LMSUSER=tc
+[ -n "$LMSGROUP" ] || LMSGROUP=staff
+[ -n "$TMPDIR" ] || TMPDIR=/tmp/slimupdate
+
+#Must Run as Root for ownership
+if [ `/usr/bin/id -u` -ne 0 ]; then
+	echo "Need to run as root." >&2
+	exit 1
+fi
+
+check_status(){
+	PID=$(pidof slimserver.pl)
+	if [ -n "$PID" ]; then
+		echo "Slimserver Running pid:${PID}"
+		exit 0
+	else
+		echo "Slimserver is not Running"
+		exit 1
+	fi
+}
+
+setusergroup(){
+	#If username or group is not existant on system, create a group and userid
+	TEST=$(/bin/grep $LMSGROUP /etc/group)
+	if [ -z TEST ]; then
+		/usr/sbin/addgroup $LMSGROUP
+	fi
+	TEST=$(/bin/grep $LMSUSER /etc/passwd)
+	if [ -z TEST ]; then
+		/usr/sbin/adduser -s /bin/false -h /nonexistent -G $LMSGROUP -D $LMSUSER
+	fi
+}
+
+set_dirs(){
+	# Make sure data directories exist and have correct ownership
+	[ -d $CACHE ] || mkdir -p $CACHE
+	[ -d $PREFS/plugin ] || mkdir -p $PREFS/plugin
+	[ -d $LOGS ] || mkdir -p $LOGS
+	[ -d $TMPDIR ] || mkdir -p $TMPDIR
+
+	# touch and set permissions of directories, otherwise logs will get created as root permissions by slimserver.pl
+	[ -e $LOGS/server.log ] || touch $LOGS/server.log
+	[ -e $LOGS/scanner.log ] || touch $LOGS/scanner.log
+	[ -e $LOGS/perfmon.log ] || touch $LOGS/perfmon.log
+
+	#This needs to be done incase user changes the username group configuration
+	chown -R $LMSUSER.$LMSGROUP $LOGS
+	chown -R $LMSUSER.$LMSGROUP $CACHE
+	chown -R $LMSUSER.$LMSGROUP $PREFS
+	chown -R $LMSUSER.$LMSGROUP $TMPDIR
+}
+
+case "${1}" in
+
+	start)
+
+		#Set LMS to run as user other than root
+		setusergroup
+		#Setup Data and Log Directories
+		set_dirs
+
+		##command line options to set cache path is not working, must create symlinks
+		[ -d /usr/local/slimserver/Cache ] || ln -s $CACHE /usr/local/slimserver/Cache
+		[ -d /usr/local/slimserver/Logs ] || ln -s $LOGS /usr/local/slimserver/Logs
+		[ -d /usr/local/slimserver/prefs ] || ln -s $PREFS /usr/local/slimserver/prefs
+
+		#  tce-load sets ownership to root.root, need to make sure lms and the symlinks are all user writable
+		chown -R $LMSUSER.$LMSGROUP /usr/local/slimserver
+
+		# Wait until network is up and running, or it will cause server startup problems
+		CNT=0
+		until ifconfig | grep -q Bcast
+		do
+			[ $((CNT++)) -gt 60 ] && break || sleep 1
+		done
+
+		#Start LMS Server as Daemon, with proper user
+		if [ $CNT -lt 60 ]; then
+			/usr/local/slimserver/slimserver.pl --daemon --user $LMSUSER --group $LMSGROUP
+			echo
+			check_status
+		else
+			echo "No Network Interface is UP.....exiting"
+			exit 1
+		fi
+		;;
+
+	stop)
+		PID=$(pidof slimserver.pl)
+		if [ -n "$PID" ]; then
+			kill -3 $PID
+			# slimserver catches signal and exits gracefully.....wait for slimserver to actually stop
+			CNT=0
+			while [ $CNT -lt 100 ]
+			do
+				[ $((CNT++)) ]
+				PID=$(pidof slimserver.pl)
+				[ -z "$PID" ] && break
+				sleep .1
+			done
+			if [ $CNT -ge 100 ]; then
+				echo "Slimserver did not stop within a reasonable time"
+				exit 1
+			fi
+			echo "Slimserver Stopped"
+			exit 0
+		else
+			echo "Slimserver PID not found, Server already stopped"
+			exit 0
+		fi
+		;;
+
+	status)
+		check_status
+		;;
+
+	*) echo "Usage $0 {start|stop|status}"; exit 1
+esac
