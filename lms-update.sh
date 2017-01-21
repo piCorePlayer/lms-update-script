@@ -293,10 +293,7 @@ find $BUILD_DIR -name "*.pl" | xargs  -t -I {} chmod 755 {} > /dev/null 2>&1
 [ "$?" != "0" ] && echo -n "1" > $f
 find $BUILD_DIR -name "dbish" | xargs  -t -I {} chmod 755 {} > /dev/null 2>&1
 [ "$?" != "0" ] && echo -n "1" > $f
-#Copy Startup and Update Script
-cp -f /tmp/tcloop/slimserver/usr/local/etc/init.d/slimserver $BUILD_DIR/usr/local/etc/init.d/slimserver
-[ "$?" != "0" ] && echo -n "1" > $f
-
+#Copy Update Script
 FDIR="usr/local/bin"
 F="lms-update.sh"
 echo "${DL_DIR}/${F}"
