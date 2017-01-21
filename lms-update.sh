@@ -90,7 +90,7 @@ if [ -z "$RESUME" ]; then
 		fi
 
 		echo "${GREEN}Updateing Script from Github..."
-		FILES="lms-update.sh custom-strings.txt picore-update.html Custom.pm"
+		FILES="lms-update.sh custom-strings.txt picore-update.html Custom.pm slimserver"
 		for F in $FILES
 		do
 			rm -f ${DL_DIR}/${F}
@@ -226,6 +226,17 @@ echo 0 > $f
 mkdir -p $BUILD_DIR/usr/local/etc/init.d
 [ "$?" != "0" ] && echo -n "1" > $f
 mv $SRC_DIR/*-noCPAN $BUILD_DIR/usr/local/slimserver
+[ "$?" != "0" ] && echo -n "1" > $f
+
+$Copy in new init.d script
+FDIR="usr/local/etc/init.d"
+F="slimserver"
+if [ -e ${DL_DIR}/${F} ]; then  # Copy Updated Version
+	chmod 755 ${DL_DIR}/${F}
+   cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
+else   # Copy version from current Extension
+   cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
+fi
 [ "$?" != "0" ] && echo -n "1" > $f
 
 #Copy in piCore custom files
