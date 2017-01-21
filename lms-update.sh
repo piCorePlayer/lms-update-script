@@ -246,10 +246,10 @@ mv $SRC_DIR/*-noCPAN $BUILD_DIR/usr/local/slimserver
 FDIR="usr/local/etc/init.d"
 F="slimserver"
 if [ -e ${DL_DIR}/${F} ]; then  # Copy Updated Version
-	chmod 755 ${DL_DIR}/${F}
-   cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
+	cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
+	chmod 755 $BUILD_DIR/${FDIR}/${F}
 else   # Copy version from current Extension
-   cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
+	cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
 fi
 [ "$?" != "0" ] && echo -n "1" > $f
 
