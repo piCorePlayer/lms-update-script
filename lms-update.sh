@@ -228,7 +228,7 @@ mkdir -p $BUILD_DIR/usr/local/etc/init.d
 mv $SRC_DIR/*-noCPAN $BUILD_DIR/usr/local/slimserver
 [ "$?" != "0" ] && echo -n "1" > $f
 
-$Copy in new init.d script
+#Copy in new init.d script
 FDIR="usr/local/etc/init.d"
 F="slimserver"
 if [ -e ${DL_DIR}/${F} ]; then  # Copy Updated Version
