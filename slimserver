@@ -22,6 +22,7 @@ fi
 [ -n "$LMSUSER" ] || LMSUSER=tc
 [ -n "$LMSGROUP" ] || LMSGROUP=staff
 [ -n "$TMPDIR" ] || TMPDIR=/tmp/slimupdate
+[ -n "$OPTIONS" ] || OPTIONS=""
 
 #Must Run as Root for ownership
 if [ `/usr/bin/id -u` -ne 0 ]; then
@@ -97,7 +98,7 @@ case "${1}" in
 
 		#Start LMS Server as Daemon, with proper user
 		if [ $CNT -lt 60 ]; then
-			/usr/local/slimserver/slimserver.pl --daemon --user $LMSUSER --group $LMSGROUP
+			/usr/local/slimserver/slimserver.pl --daemon --user $LMSUSER --group $LMSGROUP $OPTIONS
 			echo
 			check_status
 		else
