@@ -90,7 +90,7 @@ if [ -z "$RESUME" ]; then
 		fi
 
 		echo "${GREEN}Updateing Script from Github..."
-		FILES="lms-update.sh custom-strings.txt picore-update.html Custom.pm slimserver"
+		FILES="lms-update.sh"
 		for F in $FILES
 		do
 			rm -f ${DL_DIR}/${F}
@@ -115,6 +115,20 @@ if [ -z "$RESUME" ]; then
 			exec /bin/sh ${DL_DIR}/lms-update.sh "${@}"
 		fi
 	fi
+fi
+
+if [ "$SKIPUPDATE" != "1" ]; then
+	echo "${GREEN}Updateing Slimserver customizations from Github..."
+	FILES="custom-strings.txt picore-update.html Custom.pm slimserver"
+	for F in $FILES
+	do
+		rm -f ${DL_DIR}/${F}
+		wget -O ${DL_DIR}/${F} ${GIT_REPO}/${F}
+		if [ "$?" != "0" ]; then
+			echo "${RED}Download FAILED......Please Check or Relauch script with with -s option!${NORMAL}"
+			exit 1
+		fi
+	done
 fi
 
 if [ -z "$MANUAL" ]; then
