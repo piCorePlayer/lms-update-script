@@ -242,17 +242,6 @@ mkdir -p $BUILD_DIR/usr/local/etc/init.d
 mv $SRC_DIR/*-noCPAN $BUILD_DIR/usr/local/slimserver
 [ "$?" != "0" ] && echo -n "1" > $f
 
-#Copy in new init.d script
-FDIR="usr/local/etc/init.d"
-F="slimserver"
-if [ -e ${DL_DIR}/${F} ]; then  # Copy Updated Version
-	cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
-	chmod 755 $BUILD_DIR/${FDIR}/${F}
-else   # Copy version from current Extension
-	cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
-fi
-[ "$?" != "0" ] && echo -n "1" > $f
-
 #Copy in piCore custom files
 FDIR="usr/local/slimserver/Slim/Utils/OS"
 F="Custom.pm"
@@ -293,6 +282,18 @@ find $BUILD_DIR -name "*.pl" | xargs  -t -I {} chmod 755 {} > /dev/null 2>&1
 [ "$?" != "0" ] && echo -n "1" > $f
 find $BUILD_DIR -name "dbish" | xargs  -t -I {} chmod 755 {} > /dev/null 2>&1
 [ "$?" != "0" ] && echo -n "1" > $f
+
+#Copy in new init.d script
+FDIR="usr/local/etc/init.d"
+F="slimserver"
+if [ -e ${DL_DIR}/${F} ]; then  # Copy Updated Version
+	cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
+	chmod 755 $BUILD_DIR/${FDIR}/${F}
+else   # Copy version from current Extension
+	cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
+fi
+[ "$?" != "0" ] && echo -n "1" > $f
+
 #Copy Update Script
 FDIR="usr/local/bin"
 F="lms-update.sh"
