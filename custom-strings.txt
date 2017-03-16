@@ -3,8 +3,10 @@
 # Release 1.0
 #
 PICORE_UPDATE_AVAILABLE
+	DE	Eine neue Version von Logitech Media Server ist verfügbar (%s). <a href="/html/doc/picore-update.html?installerFile=%s" target="update">Klicken Sie hier für weitere Instruktionen</a>.
 	EN	A new version of Logitech Media Server is available (%s). <a href="/html/docs/picore-update.html?installerFile=%s" target="update">Click here for further information</a>.         
-	DE	Eine neue Version von Logitech Media Server ist verfügbar (%s). <a href="/html/doc/picore-update.html?installerFile=%s" target="update">Klicken Sie hie$r für weitere Instruktionen</a>.
 	FR	Une nouvelle version de Logitech Media Server est disponible (%s). <a href="/html/docs/picore-update.html?installerFile=%s" target="update">Cliquez ici pour plus d'info</a>.
 	NL	Er is een nieuwe versie van Logitech Media Server beschikbaar (%s). <a href="/html/docs/picore-update.html?installerFile=%s" target="update">Klik op hier</a>.
+	NO	En ny versjon av Logitech Media Server er tilgjengelig (%s). <a href="/html/docs/picore-update.html?installerFile=%s" target="update">Klikk her for å få mer informasjon</a>.
+	PL	Nowa wersja Logitech Media Server jest dostępna (%s). <a href="/html/docs/picore-update.html?installerFile=%s" target="update">Kliknij tutaj w celu uzyskania dodatkowej wiadomości</a>.
 	
