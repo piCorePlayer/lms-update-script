@@ -138,10 +138,11 @@ if [ -z "$MANUAL" ]; then
 		LINK="0"
 	fi
 else
-	CURVER=$(head -n 1 /usr/local/slimserver/revision.txt)
-	echo "${YELLOW}Performing manual check for update link, Current Version is: $CURVER.${NORMAL}"
+	VERSION=$(fgrep "our \$VERSION" /usr/local/slimserver/slimserver.pl | cut -d"'" -f2)
+	REVISION=$(head -n 1 /usr/local/slimserver/revision.txt)
+	echo "${YELLOW}Performing manual check for update link, Current Version is: $VERSION r${REVISION}.${NORMAL}"
 	tmp=`mktemp`
-	wget "http://www.mysqueezebox.com/update/?version=7.9.0&revision=${CURVER}&geturl=1&os=nocpan" -O $tmp
+	wget "http://www.mysqueezebox.com/update/?version=${VERSION}&revision=${REVISION}&geturl=1&os=nocpan" -O $tmp
 	if [ "$?" != "0" ]; then echo "${RED}Unable to Contact Download Server!${NORMAL}"; rm $tmp; exit 1; fi
 	read LINK < $tmp
 	rm -f $tmp
@@ -160,7 +161,7 @@ if [ "$LINK" = "0" ]; then
 		echo "DONE${NORMAL}"
 		exit 0
 	else
-		echo "${BLUE}Revision $CURVER is the latest. No Update Needed."
+		echo "${BLUE}Revision $VERSION r${REVISION} is the latest. No Update Needed."
 		echo
 		echo "DONE.${NORMAL}"
 		exit 0
