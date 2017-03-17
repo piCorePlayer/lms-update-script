@@ -11,24 +11,17 @@ package Slim::Utils::OS::Custom;
 
 use strict;
 use warnings;
-use Config;
-use File::Spec::Functions qw(:ALL);
-use FindBin qw($Bin);
-use base qw(Slim::Utils::OS);
+
+use base qw(Slim::Utils::OS::Linux);
 
 use constant MAX_LOGSIZE => 1024*1024*1; # maximum log size: 1 MB
-
-sub name {
-	return 'unix';
-}
+use constant UPDATE_DIR  => '/tmp/slimupdate';
 
 sub initDetails {
 	my $class = shift;
 
-	$class->{osDetails}->{'os'} = 'Linux';
+	$class->{osDetails} = $class->SUPER::initDetails();
 	$class->{osDetails}->{osName} = 'piCore';
-	$class->{osDetails}->{uid}    = getpwuid($>);
-	$class->{osDetails}->{osArch} = $Config{'myarchname'};
 
 	return $class->{osDetails};
 }
@@ -40,34 +33,6 @@ sub localeDetails {
 	my $lc_time = 'C';
        
 	return ($lc_ctype, $lc_time);
-}
-            
-sub canDBHighMem {
-	my $class = shift;
-    
-	require File::Slurp;
-        
-	if ( my $meminfo = File::Slurp::read_file('/proc/meminfo') ) {
-		if ( $meminfo =~ /MemTotal:\s+(\d+) (\S+)/sig ) {
-			my ($value, $unit) = ($1, $2);
-                                
-		# some 1GB systems grab RAM for the video adapter - enable dbhighmem if > 900MB installed
-			if ( ($unit =~ /KB/i && $value > 900_000) || ($unit =~ /MB/i && $value > 900) ) {
-				return 1;
-			}
-		}
-	}
-	return 0;
-}
-
-sub initSearchPath {
-	my $class = shift;
-
-	$class->SUPER::initSearchPath();
-
-	my @paths = (split(/:/, ($ENV{'PATH'} || '/sbin:/usr/sbin:/bin:/usr/bin')), qw(/usr/bin /usr/local/bin /usr/sbin ));
-	
-	Slim::Utils::Misc::addFindBinPaths(@paths);
 }
 
 =head2 dirsFor( $dir )
@@ -82,88 +47,52 @@ need information for.
 sub dirsFor {
 	my ($class, $dir) = @_;
 
-	my @dirs = $class->SUPER::dirsFor($dir);
+	my @dirs;
 	
-	# some defaults
-	if ($dir =~ /^(?:strings|revision|convert|types|repositories)$/) {
+	if ($dir eq 'updates') {
 
-		push @dirs, $Bin;
-
-	} elsif ($dir eq 'log') {
-
-		push @dirs, $::logdir || catdir($Bin, 'Logs');
-
-	} elsif ($dir eq 'cache') {
-
-		push @dirs, $::cachedir || catdir($Bin, 'Cache');
-
-	} elsif ($dir =~ /^(?:music|playlists)$/) {
-
-		push @dirs, '';
-
-	# we don't want these values to return a(nother) value
-	} elsif ($dir =~ /^(?:libpath|mysql-language)$/) {
-
-	} elsif ($dir eq 'prefs' && $::prefsdir) {
-		
-		push @dirs, $::prefsdir;
-		
-    } elsif ($dir eq 'updates') {
-	    
-		my $updateDir = '/tmp/slimupdate';
-
-        mkdir $updateDir unless -d $updateDir;
+        mkdir UPDATE_DIR unless -d UPDATE_DIR;
         	
-		@dirs = $updateDir;
-                        
-	} else {
-
-		push @dirs, catdir($Bin, $dir);
+		@dirs = (UPDATE_DIR);
 	}
-	return wantarray() ? @dirs : $dirs[0];
-}
+	else {
+		@dirs = $class->SUPER::dirsFor($dir);
+	}
 
-sub initPrefs {
-	my ($class, $defaults) = @_;
-	
-	$defaults->{checkVersionInterval} = '2592000';
-	$defaults->{checkVersionLastTime} = 1458146048;
+	return wantarray() ? @dirs : $dirs[0];
 }
 
 # don't download/cache firmware for other players, but have them download directly
 sub directFirmwareDownload { 1 };
 
 sub canAutoUpdate { 1 }
-sub runningFromSource { 0 }
 sub installerExtension { 'tgz' }
 sub installerOS { 'nocpan' }
 
 sub getUpdateParams {
 	my ($class, $url) = @_;
-	my $updateFile = '/tmp/slimupdate/update_url';
+	
 	if ($url) {
-		$url =~ /(\d\.\d\.\d).*?(\d{5,})/;
-		$::newVersion = Slim::Utils::Strings::string('PICORE_UPDATE_AVAILABLE', "$1 - $2", $url );
+		my ($version, $revision) = $url =~ /(\d+\.\d+\.\d+)(?:.*(\d{5,}))?/;
+		$revision ||= '';
+		$::newVersion = Slim::Utils::Strings::string('PICORE_UPDATE_AVAILABLE', "$version - $revision", $url);
+		
+		require File::Slurp;
 			
-		if ($url && open(my $file,">$updateFile")) {
-			main::INFOLOG &&Slim::Utils::Log->info("Setting update url file to: $url"); 
-			print $file $url;
-			close $file;
+		if ( File::Slurp::write_file(UPDATE_DIR . '/update_url', $url) ) {
+			main::INFOLOG && Slim::Utils::Log::logger('server.update')->info("Setting update url file to: $url"); 
 		}
-		elsif ($url) {
-			Slim::Utils::Log->warn("Unable to update version file: $updateFile");
+		else {
+			Slim::Utils::Log::logger('server.update')->warn("Unable to update version file: $updateFile");
 		}
 	}
+	
 	return;
 }                                                                                               
 
-sub logRotate
-{
-    my $class   = shift;
-	my $dir     = shift || Slim::Utils::OSDetect::dirsFor('log');
-        
+sub logRotate {
 	# only keep small log files (1MB) because they are in RAM
-	Slim::Utils::OS->logRotate($dir, MAX_LOGSIZE);
+	Slim::Utils::OS->logRotate($_[1], MAX_LOGSIZE);
 }       
 
 sub ignoredItems {
@@ -172,7 +101,6 @@ sub ignoredItems {
 		'dev'	=> '/',
 		'etc'	=> '/',
 		'opt'	=> '/',
-		'etc'	=> '/',
 		'init'	=> '/',
 		'root'	=> '/',
 		'sbin'	=> '/',
