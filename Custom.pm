@@ -1,11 +1,13 @@
 package Slim::Utils::OS::Custom;
 
-# Custom OS file for piCore 7.x   http://www.tinycore.net
+# Custom OS file for piCore 8.x   http://www.tinycore.net
 #
 # This version only downloads the update link to
 # /tmp/slimupdate/update_url
 #
-# Revision 1.0
+# Revision 1.1
+# 2017-04-16	Removed /proc from a music path
+#
 
 use strict;
 use warnings;
@@ -178,6 +180,7 @@ sub ignoredItems {
 		'run'	=> '/',
 		'sys'	=> '/',
 		'usr'	=> '/',
+		'proc'  => '/',
 		'lost+found'=> 1,
 	);
 }
