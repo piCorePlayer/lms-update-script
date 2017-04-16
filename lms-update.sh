@@ -2,7 +2,7 @@
 #
 #  slim-update.sh
 #
-#  Script to update slimserver.tcz on piCore 7.x from Automatic Download from LMS.
+#  Script to update slimserver.tcz on piCore 8.x from Automatic Download from LMS.
 #
 #  Script by Paul_123 @ http://forum.tinycorelinux.net/
 #  Script Source https://github.com/paul-1/lms-update-script
@@ -11,8 +11,7 @@
 #
 #  Most common usage will be 'sudo lms-update.sh -r'
 #
-#  Revision 1.0
-#
+#  Revision 1.1
 
 . /etc/init.d/tc-functions
 
@@ -28,23 +27,27 @@ usage(){
 	echo "  usage: $0 [-u] [-d] [-m] [-r] [-s] [-t]"
 	echo "            -u Unattended Execution"
 	echo "            -d Debug, Temp files not erased"
-	echo "            -m Manual download Link Check for LMS update"  #this method could break when there is a change on LMS from 7.9.0
+	echo "            -m Manual download Link Check for LMS update"
 	echo "            -r Reload LMS after Update"
 	echo "            -s Skip Update from GitHub"
 	echo "            -t Test building, but do not move extension to tce directory"
+	echo "            --mm <version> Force the version you want to update. (eg 7.9.1)"
 	echo
 }
 
-while [ $# -gt 0 ]
-do
+O=$(/usr/bin/getopt -l sss,mm: -- mudrts "$@") || exit 1
+eval set -- "$O"
+
+while true; do
 	case "$1" in
 		-u)  UNATTENDED=1;;
 		-d)  DEBUG=1;;
 		-m)  MANUAL=1;;
+		--mm) MANUAL=1;VERSION="$2"; shift;;
 		-r)  RELOAD=1;;
 		-t)  TEST=1;;
 		-s)  SKIPUPDATE=1;;
-		-sss) RESUME=1;;  #For script relaunch use only, do not use from
+		--sss) RESUME=1;;  #For script relaunch use only, do not use from
 		--)	shift; break;;
 		-*)  usage
 		exit 1;;
@@ -64,7 +67,8 @@ if [ -z "$RESUME" ]; then
 	usage
 	[ -n "$UNATTENDED" ] && echo "       Unattended Operation Enabled"
 	[ -n "$DEBUG" ] && echo "       Debug Enabled"
-	[ -n "$MANUAL" ] && echo "       Manual Download Link Check Enabled"
+	[ -n "$MANUAL" ] && echo -n "       Manual Download Link Check Enabled"
+	[ -n "$VERSION" ] && echo " Version:${VERSION}" || echo ""
 	[ -n "$RELOAD" ] && echo "       Automatic Reload Enabled"
 	[ -n "$SKIPUPDATE" ] && echo "       Skipping Update"
 	[ -n "$TEST" ] && echo "       Test Mode Enabled"
@@ -104,14 +108,14 @@ if [ -z "$RESUME" ]; then
 		echo "${GREEN}Relaunching Script in 3 seconds${NORMAL}"
 		chmod 755 ${DL_DIR}/lms-update.sh
 		sleep 3
-		set -- "-sss" $NEWARGS
+		set -- "--sss" $NEWARGS
 		exec /bin/sh ${DL_DIR}/lms-update.sh "${@}"
 	else
 		#if we are going to dismount drive to automatically reload extension, we cannot run lms-update.sh from /usr/local/bin
 		if [ -n "$RELOAD" ]; then
 			echo "${GREEN}Copying and Running script to tmp so we can automatically reload LMS later"
 			cp -f /usr/local/bin/lms-update.sh ${DL_DIR}/lms-update.sh
-			set -- "-sss" $NEWARGS
+			set -- "--sss" $NEWARGS
 			exec /bin/sh ${DL_DIR}/lms-update.sh "${@}"
 		fi
 	fi
@@ -138,7 +142,7 @@ if [ -z "$MANUAL" ]; then
 		LINK="0"
 	fi
 else
-	VERSION=$(fgrep "our \$VERSION" /usr/local/slimserver/slimserver.pl | cut -d"'" -f2)
+	[ -z $VERSION ] && VERSION=$(fgrep "our \$VERSION" /usr/local/slimserver/slimserver.pl | cut -d"'" -f2)
 	REVISION=$(head -n 1 /usr/local/slimserver/revision.txt)
 	echo "${YELLOW}Performing manual check for update link, Current Version is: $VERSION r${REVISION}.${NORMAL}"
 	tmp=`mktemp`
