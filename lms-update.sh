@@ -19,6 +19,7 @@ checkroot
 TCEDIR=$(readlink "/etc/sysconfig/tcedir")
 DL_DIR="/tmp/slimupdate"
 UPDATELINK="${DL_DIR}/update_url"
+SCRIPT=$(readlink -f $0)
 NEWARGS="${@}"
 GIT_REPO="https://raw.githubusercontent.com/paul-1/lms-update-script/Master"
 [ -d ${DL_DIR} ] || mkdir -p ${DL_DIR}
@@ -114,7 +115,7 @@ if [ -z "$RESUME" ]; then
 		#if we are going to dismount drive to automatically reload extension, we cannot run lms-update.sh from /usr/local/bin
 		if [ -n "$RELOAD" ]; then
 			echo "${GREEN}Copying and Running script to tmp so we can automatically reload LMS later"
-			cp -f /usr/local/bin/lms-update.sh ${DL_DIR}/lms-update.sh
+			cp -f ${SCRIPT} ${DL_DIR}/lms-update.sh
 			set -- "--sss" $NEWARGS
 			exec /bin/sh ${DL_DIR}/lms-update.sh "${@}"
 		fi
