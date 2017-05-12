@@ -33,6 +33,8 @@ sub initDetails {
 	return $class->{osDetails};
 }
 
+sub getSystemLanguage { 'EN' }
+
 sub localeDetails {
 	my $lc_ctype = 'utf8';
 	my $lc_time = 'C';
