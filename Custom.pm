@@ -78,8 +78,10 @@ sub getUpdateParams {
 		$::newVersion = Slim::Utils::Strings::string('PICORE_UPDATE_AVAILABLE', "$version - $revision", $url);
 		
 		require File::Slurp;
+		
+		my $updateFile = UPDATE_DIR . '/update_url';
 			
-		if ( File::Slurp::write_file(UPDATE_DIR . '/update_url', $url) ) {
+		if ( File::Slurp::write_file($updateFile, $url) ) {
 			main::INFOLOG && Slim::Utils::Log::logger('server.update')->info("Setting update url file to: $url"); 
 		}
 		else {
