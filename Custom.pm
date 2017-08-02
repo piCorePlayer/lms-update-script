@@ -14,6 +14,8 @@ use warnings;
 
 use base qw(Slim::Utils::OS::Linux);
 
+use File::Spec::Functions qw(catdir);
+
 use constant MAX_LOGSIZE => 1024*1024*1; # maximum log size: 1 MB
 use constant UPDATE_DIR  => '/tmp/slimupdate';
 
@@ -51,12 +53,16 @@ sub dirsFor {
 	
 	if ($dir eq 'updates') {
 
-        mkdir UPDATE_DIR unless -d UPDATE_DIR;
-        	
+		mkdir UPDATE_DIR unless -d UPDATE_DIR;
+
 		@dirs = (UPDATE_DIR);
 	}
 	else {
 		@dirs = $class->SUPER::dirsFor($dir);
+
+		if ($dir eq "Plugins") {
+			push @dirs, catdir( Slim::Utils::Prefs::preferences('server')->get('cachedir'), 'Plugins' );
+		}
 	}
 
 	return wantarray() ? @dirs : $dirs[0];
