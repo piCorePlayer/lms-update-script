@@ -62,6 +62,7 @@ sub dirsFor {
 
 		if ($dir eq "Plugins") {
 			push @dirs, catdir( Slim::Utils::Prefs::preferences('server')->get('cachedir'), 'Plugins' );
+			unshift @INC, catdir( Slim::Utils::Prefs::preferences('server')->get('cachedir') );
 		}
 	}
 
