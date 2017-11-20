@@ -1,18 +1,15 @@
 #!/bin/sh
 #
-#  slim-update.sh
+#  lms-update.sh
 #
-#  Script to update slimserver.tcz on piCore 8.x from Automatic Download from LMS.
+#  Script to update slimserver.tcz on piCorePlayer from LMS nightlies.
 #
+#  Script Source https://github.com/piCorePlayer/lms-update-script
 #  Script by Paul_123 @ http://forum.tinycorelinux.net/
-#  Script Source https://github.com/paul-1/lms-update-script
 #  Original script concept by jgrulich
-#
 #
 #  Most common usage will be 'sudo lms-update.sh -r'
 #
-#  Revision 1.1
-
 . /etc/init.d/tc-functions
 
 checkroot
@@ -21,7 +18,7 @@ DL_DIR="/tmp/slimupdate"
 UPDATELINK="${DL_DIR}/update_url"
 SCRIPT=$(readlink -f $0)
 NEWARGS="${@}"
-GIT_REPO="https://raw.githubusercontent.com/paul-1/lms-update-script/Master"
+GIT_REPO="https://raw.githubusercontent.com/piCorePlayer/lms-update-script/Master"
 [ -d ${DL_DIR} ] || mkdir -p ${DL_DIR}
 
 usage(){
