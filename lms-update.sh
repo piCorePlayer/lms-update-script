@@ -382,7 +382,7 @@ if [ -z "$TEST" ]; then
 				echo "Might just need to reboot${NORMAL}"
 			else
 				echo "${GREEN}Starting New Version of LMS${NORMAL}"
-				/bin/sh -c "/usr/local/etc/init.d/slimserver start"
+				/bin/sh -c "/usr/local/etc/init.d/slimserver start" >/dev/null 2>&1
 				echo
 			fi
 		else
