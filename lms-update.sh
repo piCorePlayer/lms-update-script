@@ -245,6 +245,9 @@ mkdir -p $BUILD_DIR/usr/local/etc/init.d
 mv $SRC_DIR/*-noCPAN $BUILD_DIR/usr/local/slimserver
 [ "$?" != "0" ] && echo -n "1" > $f
 
+# Remove the Font directory, separate package is needed to work anyway
+rm -rf $BUILD_DIR/usr/local/slimserver/CPAN/Font
+
 #Copy in piCore custom files
 FDIR="usr/local/slimserver/Slim/Utils/OS"
 F="Custom.pm"
