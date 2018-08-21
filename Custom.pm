@@ -1,6 +1,6 @@
 package Slim::Utils::OS::Custom;
 
-# Custom OS file for piCore 8.x   http://www.tinycore.net
+# Custom OS file for pCP 3.5.0   https://www.picoreplayer.org
 #
 # This version only downloads the update link to
 # /tmp/slimupdate/update_url
@@ -8,6 +8,9 @@ package Slim::Utils::OS::Custom;
 # Revision 1.1
 # 2017-04-16	Removed /proc from a music path
 #
+# Revision 1.2
+# 2017-08-14    Added Manual Plugin directory at Cache/Plugins
+
 
 use strict;
 use warnings;
