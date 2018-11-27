@@ -33,7 +33,7 @@ usage(){
 	echo
 }
 
-O=$(/usr/bin/getopt -l help,sss,mm: -- hmudrts "$@") || exit 1
+O=$(busybox getopt -l help,sss,mm: -- hmudrts "$@") || exit 1
 eval set -- "$O"
 
 while true; do
