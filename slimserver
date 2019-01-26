@@ -41,6 +41,13 @@ check_status(){
 	fi
 }
 
+check_perl_link(){
+	if [ ! -x /usr/bin/perl ]; then
+		PERL=$(which perl)
+		ln -s $PERL /usr/bin/perl
+	fi
+}
+
 setusergroup(){
 	#If username or group is not existant on system, create a group and userid
 	TEST=$(/bin/grep $LMSGROUP /etc/group)
@@ -80,6 +87,9 @@ case "${1}" in
 		setusergroup
 		#Setup Data and Log Directories
 		set_dirs
+		#slimserver.pl defaults to /usr/bin/perl, verify symlink exists
+		check_perl_link
+
 
 		##command line options to set cache path is not working, must create symlinks
 		[ -d /usr/local/slimserver/Cache ] || ln -s $CACHE /usr/local/slimserver/Cache
