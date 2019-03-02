@@ -82,11 +82,11 @@ if [ -z "$RESUME" ]; then
 			if  [ ! -f $TCEDIR/optional/openssl.tcz ]; then
 				echo "${GREEN} Downloading required extension openssl.tcz${NORMAL}"
 				echo
-				su - tc -c "tce-load -liw openssl.tcz"
+				su - tc -c "pcp-load -r https://repo.picoreplayer.org/repo -liw openssl.tcz"
 			else
 				echo "${GREEN} Loading Local Extension openssl.tcz${NORMAL}"
 				echo
-				su - tc -c "tce-load -li openssl.tcz"
+				su - tc -c "pcp-load -r https://repo.picoreplayer.org/repo -li openssl.tcz"
 			fi
 			if [ "$?" != "0" ]; then echo "${RED}Failed to load required extension!. ${NORMAL} Check by manually installing	extension openssl.tcz"; exit 1; fi
 		fi
@@ -193,11 +193,11 @@ if [ ! -x /usr/local/bin/mksquashfs ]; then
 	if  [ ! -f $TCEDIR/optional/squashfs-tools.tcz ]; then
 		echo "${GREEN}Downloading required extension squashfs-tools.tcz${NORMAL}"
 		echo
-		su - tc -c "tce-load -liw squashfs-tools.tcz"
+		su - tc -c "pcp-load -r https://repo.picoreplayer.org/repo -liw squashfs-tools.tcz"
 	else
 		echo "${GREEN}Loading Local Extension squashfs-tools.tcz${NORMAL}"
 		echo
-		su - tc -c "tce-load -li squashfs-tools.tcz"
+		su - tc -c "pcp-load -r https://repo.picoreplayer.org/repo -li squashfs-tools.tcz"
 	fi
 	if [ "$?" != "0" ]; then echo "${RED}Failed to load required extension!. ${NORMAL} Check by manually installing extension squashfs-tools.tcz"; exit 1; fi
 fi
