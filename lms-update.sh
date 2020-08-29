@@ -140,14 +140,29 @@ if [ -z "$MANUAL" ]; then
 		LINK="0"
 	fi
 else
-	[ -z $VERSION ] && VERSION=$(fgrep "our \$VERSION" /usr/local/slimserver/slimserver.pl | cut -d"'" -f2)
-	REVISION=$(head -n 1 /usr/local/slimserver/revision.txt)
-	echo "${YELLOW}Performing manual check for update link, Current Version is: $VERSION r${REVISION}.${NORMAL}"
-	tmp=`mktemp`
-	wget "http://www.mysqueezebox.com/update/?version=${VERSION}&revision=${REVISION}&geturl=1&os=nocpan" -O $tmp
-	if [ "$?" != "0" ]; then echo "${RED}Unable to Contact Download Server!${NORMAL}"; rm $tmp; exit 1; fi
-	read LINK < $tmp
-	rm -f $tmp
+	if [ -z $VERSION ]; then
+		VERSION=$(fgrep "our \$VERSION" /usr/local/slimserver/slimserver.pl | cut -d"'" -f2)
+		REVISION=$(head -n 1 /usr/local/slimserver/revision.txt)
+	else
+		#Release versions are using in a different spot, need to check that first.
+		echo -n "${YELLOW}Checking version for release status..."
+		LINK="http://downloads.slimdevices.com/LogitechMediaServer_v${VERSION}/logitechmediaserver-${VERSION}-noCPAN.tgz"
+		wget --spider "$LINK" >/dev/null 2>&1
+		if [ $? -eq 0 ]; then
+			echo "${GREEN}Found Logitech Media Server Release $VERSION"
+		else
+			echo "${YELLOW}Not a release version"
+			REVISION=1
+		fi
+	fi
+	if [ -z $LINK ]; then
+		echo "${YELLOW}Performing manual check for update link, Current Version is: $VERSION r${REVISION}.${NORMAL}"
+		tmp=`mktemp`
+		wget "http://www.mysqueezebox.com/update/?version=${VERSION}&revision=${REVISION}&geturl=1&os=nocpan" -O $tmp
+		if [ "$?" != "0" ]; then echo "${RED}Unable to Contact Download Server!${NORMAL}"; rm $tmp; exit 1; fi
+		read LINK < $tmp
+		rm -f $tmp
+	fi
 fi
 
 if [ "$LINK" = "0" ]; then
@@ -155,7 +170,8 @@ if [ "$LINK" = "0" ]; then
 	if [ -z "$MANUAL" ]; then
 		echo
 		echo "${BLUE}No update link found.   THis either means that there is no update, or you do not have automatic update"
-		echo "checks and automatic downloads enabled in the LMS settings."
+		echo "checks and automatic downloads enabled in the LMS settings.  If you are running a full release version,"
+		echo "there will never be updates."
 		echo
 		echo "If you would like to manually check for updates using a static update check, please relaunch this script"
 		echo "using the -m command line switch"
