@@ -152,6 +152,7 @@ else
 			echo "${GREEN}Found Logitech Media Server Release $VERSION"
 		else
 			echo "${YELLOW}Not a release version"
+			unset LINK
 			REVISION=1
 		fi
 	fi
