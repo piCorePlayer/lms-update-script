@@ -143,21 +143,16 @@ else
 	if [ -z $VERSION ]; then
 		VERSION=$(fgrep "our \$VERSION" /usr/local/slimserver/slimserver.pl | cut -d"'" -f2)
 		REVISION=$(head -n 1 /usr/local/slimserver/revision.txt)
+		echo "${YELLOW}Current Version is: $VERSION r${REVISION}.${NORMAL}"
 	else
-		#Release versions are using in a different spot, need to check that first.
-		echo -n "${YELLOW}Checking version for release status..."
-		LINK="http://downloads.slimdevices.com/LogitechMediaServer_v${VERSION}/logitechmediaserver-${VERSION}-noCPAN.tgz"
-		wget --spider "$LINK" >/dev/null 2>&1
-		if [ $? -eq 0 ]; then
-			echo "${GREEN}Found Logitech Media Server Release $VERSION"
+		if [ $(fgrep "our \$VERSION" /usr/local/slimserver/slimserver.pl | cut -d"'" -f2) = "$VERSION" ]; then
+			REVISION=$(head -n 1 /usr/local/slimserver/revision.txt)
 		else
-			echo "${YELLOW}Not a release version"
-			unset LINK
 			REVISION=1
 		fi
+		echo "${YELLOW}Performing manual check for download link for Version: $VERSION r${REVISION}.${NORMAL}"
 	fi
 	if [ -z $LINK ]; then
-		echo "${YELLOW}Performing manual check for update link, Current Version is: $VERSION r${REVISION}.${NORMAL}"
 		tmp=`mktemp`
 		wget "http://www.mysqueezebox.com/update/?version=${VERSION}&revision=${REVISION}&geturl=1&os=nocpan" -O $tmp
 		if [ "$?" != "0" ]; then echo "${RED}Unable to Contact Download Server!${NORMAL}"; rm $tmp; exit 1; fi
