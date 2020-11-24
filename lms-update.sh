@@ -19,57 +19,68 @@ UPDATELINK="${DL_DIR}/update_url"
 SCRIPT=$(readlink -f $0)
 NEWARGS="${@}"
 GIT_REPO="https://raw.githubusercontent.com/piCorePlayer/lms-update-script/Master"
+RELEASE=""
+FORCE=0
 [ -d ${DL_DIR} ] || mkdir -p ${DL_DIR}
 
 usage(){
 	echo "  usage: $0 [-u] [-d] [-m] [-r] [-s] [-t]"
 	echo "            -u Unattended Execution"
 	echo "            -d Debug, Temp files not erased"
+	echo "            -f Force Downgrade"
 	echo "            -m Manual download Link Check for LMS update"
 	echo "            -r Reload LMS after Update"
 	echo "            -s Skip Update from GitHub"
-	echo "            -t Test building, but do not move extension to tce directory"
-	echo "            --mm <version> Force the version you want to update. (eg 7.9.1)"
+	echo "            --release <release|stable|devel> Update from the selected branch"
 	echo
 }
 
-O=$(busybox getopt -l help,sss,mm: -- hmudrts "$@") || exit 1
+O=$(busybox getopt -l help,sss,mm:,release: -- hfmudrts "$@") || exit 1
 eval set -- "$O"
 
 while true; do
 	case "$1" in
-		-u)  UNATTENDED=1;;
-		-d)  DEBUG=1;;
-		-m)  MANUAL=1;;
-		--mm) MANUAL=1;VERSION="$2"; shift;;
-		-r)  RELOAD=1;;
+		-u)   UNATTENDED=1;;
+		-d)   DEBUG=1;;
+		-f)   FORCE=1;;
+		-m)   MANUAL=1;;
+		--mm) echo "--mm option is depreciated, use the --release option."
+				MANUAL=1; RELEASE="release"; shift;;
+		-r)   RELOAD=1;;
+		--release) MANUAL=1; RELEASE="$2"; shift
+			case $RELEASE in
+				release|stable|devel);;
+				*) echo "release selection error"
+					usage
+					exit 1;;
+			esac
+			;;
 		-t)  TEST=1;;
 		-s)  SKIPUPDATE=1;;
-		--sss) RESUME=1;;  #For script relaunch use only, do not use from
+		--sss) RESUME=1;;  #For script relaunch use only, do not use from commandline
 		--)	shift; break;;
-		-*)  usage
-		exit 1;;
+		-*)  usage; exit 1;;
 		*)  break;;	# terminate while loop
 	esac
 	shift
 done
 
 if [ -z "$RESUME" ]; then
-	[ -z "$UNATTENDED" ] && clear
 
 	echo
 	echo "${BLUE}###############################################################"
 	echo
 	echo "  This script will update the Logitech Media Server extension  "
 	echo
-	usage
-	[ -n "$UNATTENDED" ] && echo "       Unattended Operation Enabled"
-	[ -n "$DEBUG" ] && echo "       Debug Enabled"
-	[ -n "$MANUAL" ] && echo -n "       Manual Download Link Check Enabled"
-	[ -n "$VERSION" ] && echo " Version:${VERSION}" || echo ""
-	[ -n "$RELOAD" ] && echo "       Automatic Reload Enabled"
-	[ -n "$SKIPUPDATE" ] && echo "       Skipping Update"
-	[ -n "$TEST" ] && echo "       Test Mode Enabled"
+	[ -n "$RELEASE" ] &&    echo    "       Upgrading from $RELEASE branch."
+	[ $FORCE -eq 1 ] &&     echo    "       Forcing downgrade. (If needed)"
+	[ -n "$UNATTENDED" ] && echo    "       Unattended Operation Enabled"
+	[ -n "$DEBUG" ] &&      echo    "       Debug Enabled"
+	[ -n "$MANUAL" ] &&     echo -n "       Manual Download Link Check Enabled"
+	[ -n "$VERSION" ] &&    echo    " Version:${VERSION}" || echo ""
+	[ -n "$RELOAD" ] &&     echo    "       Automatic Reload Enabled"
+	[ -n "$SKIPUPDATE" ] && echo    "       Skipping GitHub Update"
+	[ -n "$TEST" ] &&       echo    "       Test Mode Enabled"
 	echo "###############################################################"
 	echo
 	echo "Press Enter to continue, or Ctrl-c to exit and change options${NORMAL}"
@@ -134,31 +145,64 @@ if [ "$SKIPUPDATE" != "1" ]; then
 fi
 
 if [ -z "$MANUAL" ]; then
+	#Not running with manual options, look for URL saved from LMS
 	if [ -f  "${UPDATELINK}" ]; then
 		read LINK < $UPDATELINK
 	else
 		LINK="0"
 	fi
 else
-	if [ -z $VERSION ]; then
-		VERSION=$(fgrep "our \$VERSION" /usr/local/slimserver/slimserver.pl | cut -d"'" -f2)
-		REVISION=$(head -n 1 /usr/local/slimserver/revision.txt)
-		echo "${YELLOW}Current Version is: $VERSION r${REVISION}.${NORMAL}"
+	VERSION=$(fgrep "our \$VERSION" /usr/local/slimserver/slimserver.pl | cut -d"'" -f2)
+	REVISION=$(head -n 1 /usr/local/slimserver/revision.txt)
+	echo "${YELLOW}Current Version is: $VERSION r${REVISION}.${NORMAL}"
+
+	case $RELEASE in
+		release) LATEST="http://downloads.slimdevices.com/releases/latest.xml";;
+		stable) LATEST="http://downloads.slimdevices.com/releases/nightly/stable.xml";;
+		devel) LATEST="http://downloads.slimdevices.com/releases/nightly/dev.xml";;
+		*) LATEST="http://downloads.slimdevices.com/releases/latest.xml";;
+	esac
+
+	tmp=$(mktemp)
+	wget -q $LATEST -O $tmp
+	# Add linefeeds after elements for parsing
+	sed -E -i 's/>/>\n/g' $tmp
+
+	while read line; do
+   	echo $line | grep -q nocpan
+	   if [ $? -eq 0 ]; then
+	      NOCPAN=$(echo $line)
+	   fi
+	done < $tmp
+	rm -f $tmp
+
+	if [ "$NOCPAN" != "" ]; then
+	   NEW_REVISION=$(echo $NOCPAN | awk -F'revision=' '{print $2}' | cut -d' ' -f1 | sed 's|/>||' | sed 's|"||g')
+	   NEW_URL=$(echo $NOCPAN | awk -F'url=' '{print $2}' | cut -d' ' -f1 | sed 's|/>||' | sed 's|"||g')
+	   NEW_VERSION=$(echo $NOCPAN | awk -F'version=' '{print $2}' | cut -d' ' -f1 | sed 's|/>||' | sed 's|"||g')
 	else
-		if [ $(fgrep "our \$VERSION" /usr/local/slimserver/slimserver.pl | cut -d"'" -f2) = "$VERSION" ]; then
-			REVISION=$(head -n 1 /usr/local/slimserver/revision.txt)
-		else
-			REVISION=1
-		fi
-		echo "${YELLOW}Performing manual check for download link for Version: $VERSION r${REVISION}.${NORMAL}"
+		echo "${YELLOW}No update information returned from slimdevices.com.  There may not be current packages for the"
+		echo "release branch selected.${NORMAL}"
+		exit 1
 	fi
-	if [ -z $LINK ]; then
-		tmp=`mktemp`
-		wget "http://www.mysqueezebox.com/update/?version=${VERSION}&revision=${REVISION}&geturl=1&os=nocpan" -O $tmp
-		if [ "$?" != "0" ]; then echo "${RED}Unable to Contact Download Server!${NORMAL}"; rm $tmp; exit 1; fi
-		read LINK < $tmp
-		rm -f $tmp
+
+	if [ $NEW_REVISION -eq $REVISION ]; then
+		echo "${GREEN}Already running latest version, use the --release <branch> command line option to change branches.${NORMAL}"
+		exit 1
 	fi
+
+	if [ $NEW_REVISION -lt $REVISION -a $FORCE -eq 0 ]; then
+		echo "${RED}LMS version downgrade selected, you must use the -f command line option to force downgrade.${NORMAL}"
+		echo ""
+		echo "${YELLOW}If you are currently using a nightly branch, to do manual upgrade, you now must select the desired"
+		echo "branch on the command line.  Automatic checks from within LMS will check the appropriate versions."
+		echo "   --release release - This option will check for the latest full release of LMS, This is default."
+		echo "   --release stable  - This option will check the latest stable branch with nightly bug fix releases."
+		echo "   --release devel   - This option will check the latest nightly development branch."
+		exit 1
+	fi
+
+	LINK=$NEW_URL
 fi
 
 if [ "$LINK" = "0" ]; then
@@ -167,7 +211,7 @@ if [ "$LINK" = "0" ]; then
 		echo
 		echo "${BLUE}No update link found.   THis either means that there is no update, or you do not have automatic update"
 		echo "checks and automatic downloads enabled in the LMS settings.  If you are running a full release version,"
-		echo "there will never be updates."
+		echo "there will only be updates when a new release is issued."
 		echo
 		echo "If you would like to manually check for updates using a static update check, please relaunch this script"
 		echo "using the -m command line switch"
