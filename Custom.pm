@@ -72,9 +72,6 @@ sub dirsFor {
 	return wantarray() ? @dirs : $dirs[0];
 }
 
-# don't download/cache firmware for other players, but have them download directly
-sub directFirmwareDownload { 1 };
-
 sub canAutoUpdate { 1 }
 sub installerExtension { 'tgz' }
 sub installerOS { 'nocpan' }
