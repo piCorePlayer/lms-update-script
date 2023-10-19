@@ -123,7 +123,7 @@ case "${1}" in
 			kill -3 $PID
 			# slimserver catches signal and exits gracefully.....wait for slimserver to actually stop
 			CNT=0
-			while [ $CNT -lt 100 ]
+			while [ $CNT -lt 200 ]
 			do
 				[ $((CNT++)) ]
 				PID=$(pidof slimserver.pl)
