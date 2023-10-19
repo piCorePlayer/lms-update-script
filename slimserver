@@ -130,7 +130,7 @@ case "${1}" in
 				[ -z "$PID" ] && break
 				sleep .1
 			done
-			if [ $CNT -ge 100 ]; then
+			if [ $CNT -ge 200 ]; then
 				echo "Slimserver did not stop within a reasonable time"
 				exit 1
 			fi
