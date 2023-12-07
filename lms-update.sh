@@ -157,10 +157,10 @@ else
 	echo "${YELLOW}Current Version is: $VERSION r${REVISION}.${NORMAL}"
 
 	case $RELEASE in
-		release) LATEST="http://downloads.slimdevices.com/releases/latest.xml";;
-		stable) LATEST="http://downloads.slimdevices.com/releases/nightly/stable.xml";;
-		devel) LATEST="http://downloads.slimdevices.com/releases/nightly/dev.xml";;
-		*) LATEST="http://downloads.slimdevices.com/releases/latest.xml";;
+		release) LATEST="https://lms-community.github.io/lms-server-repository/latest.xml";;
+		stable) LATEST="https://lms-community.github.io/lms-server-repository/stable.xml";;
+		devel) LATEST="https://lms-community.github.io/lms-server-repository/dev.xml";;
+		*) LATEST="https://lms-community.github.io/lms-server-repository/latest.xml";;
 	esac
 
 	tmp=$(mktemp)
@@ -181,7 +181,7 @@ else
 	   NEW_URL=$(echo $NOCPAN | awk -F'url=' '{print $2}' | cut -d' ' -f1 | sed 's|/>||' | sed 's|"||g')
 	   NEW_VERSION=$(echo $NOCPAN | awk -F'version=' '{print $2}' | cut -d' ' -f1 | sed 's|/>||' | sed 's|"||g')
 	else
-		echo "${YELLOW}No update information returned from slimdevices.com.  There may not be current packages for the"
+		echo "${YELLOW}No update information returned from the download site.  There may not be current packages for the"
 		echo "release branch selected.${NORMAL}"
 		exit 1
 	fi
