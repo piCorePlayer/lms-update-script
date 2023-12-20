@@ -80,7 +80,7 @@ sub getUpdateParams {
 	my ($class, $url) = @_;
 	
 	if ($url) {
-		my ($version, $revision) = $url =~ /(\d+\.\d+\.\d+)(?:.*(\d{5,}))?/;
+		my ($version, $revision) = $url =~ /(\d+\.\d+\.\d+)(?:.*?(\d{10,}))?/;
 		$revision ||= '';
 		$::newVersion = Slim::Utils::Strings::string('PICORE_UPDATE_AVAILABLE', "$version - $revision", $url);
 		
