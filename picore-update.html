@@ -1,7 +1,7 @@
 [%# Helper web page for piCore and piCorePlayer with instructions as to how to 
 	update slimserver.
 	
-	Revision 1.0
+	Revision 1.1
 %]
 
 [% pagetitle = 'How to update your Logitech Media Server on your piCore system' %]
@@ -28,7 +28,7 @@ These will update your local copy of LMS to the latest source code.<p>
 <br>
 <p>For users of piCorePlayer please use 
 <script language="JavaScript">
-document.write('<a href="' + window.location.protocol + '//' + window.location.hostname + ':80' + '/cgi-bin/lms-update.cgi' + '" >This Link</a> ' );
+document.write('<a href="' + window.location.protocol + '//' + window.location.hostname + ':80' + '/cgi-bin/lms-update.cgi?ACTION=Nightly' + '" >this Link</a> ' );
 </script></p>
 
 [% PROCESS helpfooter.html %]
