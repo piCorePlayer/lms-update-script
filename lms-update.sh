@@ -410,9 +410,9 @@ if [ -z "$TEST" ]; then
 		CNT=0
 		until ! lsof | grep -q /tmp/tcloop/slimserver
 		do
-			[ $((CNT++)) -gt 10 ] && break || sleep 1
+			[ $((CNT++)) -gt 20 ] && break || sleep 1
 		done
-		if [ $CNT -gt 10 ]; then
+		if [ $CNT -gt 20 ]; then
 			echo "${RED}Drive is still busy, Extension will be replaced, but a reboot will be requied when finished"
 		 	REBOOT=1
 		fi
