@@ -388,7 +388,7 @@ echo "${BLUE}Press Enter to continue, or Ctrl-c to exit${NORMAL}"
 
 echo "${GREEN}Creating extension, it may take a while ... especially on rpi 0/A/B/A+/B+"
 
-mksquashfs $BUILD_DIR /tmp/slimserver.tcz -noappend -force-uid 0 -force-gid 50
+mksquashfs $BUILD_DIR /tmp/slimserver.tcz -noappend -force-uid 0 -force-gid 50 -b 16384
 if [ "$?" != "0" ]; then 
 	echo "${RED}Building Extension FAILED...... exiting!${NORMAL}"
 	[ -n "$DEBUG" ] || (rm -rf $SRC_DIR; rm -rf $BUILD_DIR)
