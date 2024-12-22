@@ -70,7 +70,7 @@ if [ -z "$RESUME" ]; then
 	echo
 	echo "${BLUE}###############################################################"
 	echo
-	echo "  This script will update the Logitech Media Server extension  "
+	echo "  This script will update the Lyrion Music Server extension  "
 	echo
 	[ -n "$RELEASE" ] &&    echo    "       Upgrading from $RELEASE branch."
 	[ $FORCE -eq 1 ] &&     echo    "       Forcing downgrade. (If needed)"
