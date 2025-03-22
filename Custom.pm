@@ -73,17 +73,13 @@ sub dirsFor {
 }
 
 sub canAutoUpdate { 1 }
-sub installerExtension { 'tgz' }
-sub installerOS { 'nocpan' }
+sub installerExtension { 'tcz' }
+sub installerOS { 'pcp' }
 
 sub getUpdateParams {
 	my ($class, $url) = @_;
 	
 	if ($url) {
-		my ($version, $revision) = $url =~ /(\d+\.\d+\.\d+)(?:.*?(\d{10,}))?/;
-		$revision ||= '';
-		$::newVersion = Slim::Utils::Strings::string('PICORE_UPDATE_AVAILABLE', "$version - $revision", $url);
-		
 		require File::Slurp;
 		
 		my $updateFile = UPDATE_DIR . '/update_url';
@@ -94,9 +90,20 @@ sub getUpdateParams {
 		else {
 			Slim::Utils::Log::logger('server.update')->warn("Unable to update version file: $updateFile");
 		}
+
 	}
 	
-	return;
+	return {
+		cb => sub {
+			my ($file) = @_;
+
+			if ($file) {
+				my ($version, $revision) = $file =~ /(\d+\.\d+\.\d+)(?:.*?(\d{5,}))?/;
+				$revision ||= 0;
+				$::newVersion = Slim::Utils::Strings::string('PICORE_UPDATE_AVAILABLE', "$version - $revision", $file);
+			}		
+		}
+	};
 }                                                                                               
 
 sub logRotate {
