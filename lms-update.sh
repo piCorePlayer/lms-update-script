@@ -15,6 +15,9 @@
 checkroot
 TCEDIR=$(readlink "/etc/sysconfig/tcedir")
 DL_DIR="/tmp/slimupdate"
+# Future
+LMS_DIR="/usr/local/slimserver/Cache/updates"
+#
 UPDATELINK="${DL_DIR}/update_url"
 SCRIPT=$(readlink -f $0)
 NEWARGS="${@}"
@@ -185,7 +188,7 @@ else
 		NEW_REVISION=$(echo $UPDPKG | awk -F'revision=' '{print $2}' | cut -d' ' -f1 | sed 's|/>||' | sed 's|"||g')
 		NEW_URL=$(echo $UPDPKG | awk -F'url=' '{print $2}' | cut -d' ' -f1 | sed 's|/>||' | sed 's|"||g')
 		NEW_VERSION=$(echo $UPDPKG | awk -F'version=' '{print $2}' | cut -d' ' -f1 | sed 's|/>||' | sed 's|"||g')
-		NEW_md5=$(echo $UPDPKG | awk -F'md5=' '{print $2}' | cut -d' ' -f1 | sed 's|/>||' | sed 's|"||g')
+		NEW_MD5=$(echo $UPDPKG | awk -F'md5=' '{print $2}' | cut -d' ' -f1 | sed 's|/>||' | sed 's|"||g')
 	else
 		echo "${YELLOW}No update information returned from the download site.  There may not be current packages for the"
 		echo "release branch selected.${NORMAL}"
@@ -232,11 +235,11 @@ if [ "$LINK" = "0" ]; then
 	fi
 else
 	echo
-	echo "${GREEN}Downloading update from ${LINK}"
+	echo "${GREEN}Updating from ${LINK}"
 fi
 
 #Check for extension packages already downloaded
-PKG=$(ls -1 $DL_DIR/lyrionmusicserver*.tcz 2>/dev/null)
+PKG=$(ls -1 ${DL_DIR}/lyrionmusicserver*.tcz 2>/dev/null)
 if [ "$PKG" = "" ]; then
 	rm -f $DL_DIR/*.t?z
 	wget -P $DL_DIR $LINK
@@ -245,6 +248,9 @@ if [ "$PKG" = "" ]; then
 		[ -n "$DEBUG" ] || rm -f $DL_DIR/'*.t?z'
 		exit 1
 	fi
+	FILENAME="$(echo $NEW_URL | awk -F'/' '{ print $NF }')"
+	echo "$NEW_MD5  $FILENAME" > ${DL_DIR}/$FILENAME
+
 	NEWUPDATE=`find ${DL_DIR} -name "*.t?z"`
 	if [ -z $NEWUPDATE ]; then
 		echo "${BLUE}No Update Found, please make sure Automatic updates and Automatic Downloads are enable in LMS.${NORMAL}"
@@ -253,159 +259,16 @@ if [ "$PKG" = "" ]; then
 	fi
 fi
 
+#This package was manually downloaded
 PKG=$(ls -1 $DL_DIR/lyrionmusicserver*.tcz 2>/dev/null)
 if [ "$PKG" != "" ]; then
-	#Downloaded md5 was checked by LMS
-	mv $DL_DIR/lyrionmusicserver*.tcz /tmp/slimserver.tcz
-else
-	#Check for depednancy of mksquashfs
-	if [ ! -x /usr/local/bin/mksquashfs ]; then
-		if  [ ! -f $TCEDIR/optional/squashfs-tools.tcz ]; then
-			echo "${GREEN}Downloading required extension squashfs-tools.tcz${NORMAL}"
-			echo
-			su - tc -c "pcp-load -r https://repo.picoreplayer.org/repo -liw squashfs-tools.tcz"
-		else
-			echo "${GREEN}Loading Local Extension squashfs-tools.tcz${NORMAL}"
-			echo
-			su - tc -c "pcp-load -r https://repo.picoreplayer.org/repo -li squashfs-tools.tcz"
-		fi
-		if [ "$?" != "0" ]; then echo "${RED}Failed to load required extension!. ${NORMAL} Check by manually installing extension squashfs-tools.tcz"; exit 1; fi
-	fi
-
-	echo
-	echo "${GREEN}Updating from ${NEWUPDATE}"
-
-	#  Extract Downloaded File
-	echo
-	echo -ne "${GREEN}Extracting Update..."
-
-	SRC_DIR=`mktemp -d`
-	f=`mktemp`
-	( tar -xzf ${NEWUPDATE} -C $SRC_DIR; echo -n $? > $f ) &
-
-	rotdash $!
-	read e < $f
-	if [ "$e" != "0" ]; then
-		echo "${RED}File Extraction FAILED.....exiting!${NORMAL}"
-		[ -n "$DEBUG" ] || rm -rf $SRC_DIR
-		exit 1
-	fi
-	rm -f $f
-
-	echo
-	echo -e "${BLUE}Tar Extraction Complete, Building Updated Extension Filesystem"
-	echo
-	echo "Press Enter to continue, or Ctrl-c to exit${NORMAL}"
-
-	[ -z "$UNATTENDED" ] && read key
-
-	echo
-	echo -ne "${GREEN}Update in progress ..."
-
-	BUILD_DIR=`mktemp -d`
-
-	f=`mktemp`
-	echo 0 > $f
-
-	# Each command has an error trap
-	(mkdir -p $BUILD_DIR/usr/local/bin
-	[ "$?" != "0" ] && echo -n "1" > $f
-	mkdir -p $BUILD_DIR/usr/local/etc/init.d
-	[ "$?" != "0" ] && echo -n "1" > $f
-	mv $SRC_DIR/*-noCPAN $BUILD_DIR/usr/local/slimserver
-	[ "$?" != "0" ] && echo -n "1" > $f
-
-	# Remove the Font directory, separate package is needed to work anyway
-	rm -rf $BUILD_DIR/usr/local/slimserver/CPAN/Font
-
-	#Copy in piCore custom files
-	FDIR="usr/local/slimserver/Slim/Utils/OS"
-	F="Custom.pm"
-	if [ -e ${DL_DIR}/${F} ]; then  # Copy Updated Version
-		cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
-	else   # Copy version from current Extension
-		cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
-	fi
-	[ "$?" != "0" ] && echo -n "1" > $f
-
-	FDIR="usr/local/slimserver/HTML/EN/html/docs"
-	F="picore-update.html"
-	if [ -e ${DL_DIR}/${F} ]; then  # Copy Updated Version
-		cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
-	else   # Copy version from current Extension
-		cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
-	fi
-	[ "$?" != "0" ] && echo -n "1" > $f
-
-	FDIR="usr/local/slimserver"
-	F="custom-strings.txt"
-	if [ -e ${DL_DIR}/${F} ]; then  # Copy Updated Version
-		cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
-	else   # Copy version from current Extension
-		cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
-	fi
-	[ "$?" != "0" ] && echo -n "1" > $f
-
-	###tarfile comes with only user ownership, which breaks symlinks on TC
-	#Change all files to 644
-	chmod -R 644 $BUILD_DIR
-	[ "$?" != "0" ] && echo -n "1" > $f
-	#Change mode for directories to 755
-	find $BUILD_DIR -type d | xargs -t -I {} chmod 755 {} > /dev/null 2>&1
-	[ "$?" != "0" ] && echo -n "1" > $f
-	#Change mod for executables
-	find $BUILD_DIR -name "*.pl" | xargs  -t -I {} chmod 755 {} > /dev/null 2>&1
-	[ "$?" != "0" ] && echo -n "1" > $f
-	find $BUILD_DIR -name "dbish" | xargs  -t -I {} chmod 755 {} > /dev/null 2>&1
-	[ "$?" != "0" ] && echo -n "1" > $f
-
-	#Copy in new init.d script
-	FDIR="usr/local/etc/init.d"
-	F="slimserver"
-	if [ -e ${DL_DIR}/${F} ]; then  # Copy Updated Version
-		cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
-		chmod 755 $BUILD_DIR/${FDIR}/${F}
-	else   # Copy version from current Extension
-		cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
-	fi
-	[ "$?" != "0" ] && echo -n "1" > $f
-
-	#Copy Update Script
-	FDIR="usr/local/bin"
-	F="lms-update.sh"
-	echo "${DL_DIR}/${F}"
-	if [ -x "${DL_DIR}/${F}" ]; then  # Copy Updated Version
-		cp -f ${DL_DIR}/${F} $BUILD_DIR/${FDIR}/${F}
-	else   # Copy version from current Extension
-		cp -f /tmp/tcloop/slimserver/${FDIR}/${F} $BUILD_DIR/${FDIR}/${F}
-	fi
-	[ "$?" != "0" ] && echo -n "1" > $f
-
-	) &
-
-	rotdash $!
-	read e < $f
-	if [ "$e" != "0" ]; then
-		echo "${RED}Update FAILED.....exiting!${NORMAL}"
-		[ -n "$DEBUG" ] || (rm -rf $SRC_DIR; rm -rf $BUILD_DIR)
-		exit 1
-	fi
-	rm -f $f
-
-	echo
-	echo
-	echo -e "${BLUE}Done Updating Files.  The files are ready to be packed into the new extension"
-	echo
-	echo "${BLUE}Press Enter to continue, or Ctrl-c to exit${NORMAL}"
-
-	[ -z "$UNATTENDED" ] && read key
-
-	echo "${GREEN}Creating extension, it may take a while ... especially on rpi 0/A/B/A+/B+"
-
-	mksquashfs $BUILD_DIR /tmp/slimserver.tcz -noappend -force-uid 0 -force-gid 50 -b 16384
-	if [ "$?" != "0" ]; then 
-		echo "${RED}Building Extension FAILED...... exiting!${NORMAL}"
-		[ -n "$DEBUG" ] || (rm -rf $SRC_DIR; rm -rf $BUILD_DIR)
+	mv ${DL_DIR}/lyrionmusicserver*.tcz /tmp/slimserver.tcz
+	mv ${DL_DIR}/lyrionmusicserver*.tcz.md5.txt /tmp/slimserver.tcz.md5.txt
+	sed -i 's/lyrionmusicserver-.*/slimserver.tcz/' /tmp/slimserver.tcz.md5.txt
+	cd /tmp
+	md5sum -cs slimserver.tcz.md5.txt
+	if [ $? -ne 0 ]; then
+		echo "$PKG MD5 does not verify, please try again."
 		exit 1
 	fi
 fi
