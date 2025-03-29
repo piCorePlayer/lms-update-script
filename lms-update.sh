@@ -21,7 +21,7 @@ LMS_DIR="/usr/local/slimserver/Cache/updates"
 UPDATELINK="${DL_DIR}/update_url"
 SCRIPT=$(readlink -f $0)
 NEWARGS="${@}"
-GIT_REPO="https://raw.githubusercontent.com/piCorePlayer/lms-update-script/Master"
+GIT_REPO="https://raw.githubusercontent.com/piCorePlayer/lms-update-script/prebuilt_tcz"
 RELEASE=""
 FORCE=0
 [ -d ${DL_DIR} ] || mkdir -p ${DL_DIR}
@@ -131,20 +131,6 @@ if [ -z "$RESUME" ]; then
 			exec /bin/sh ${DL_DIR}/lms-update.sh "${@}"
 		fi
 	fi
-fi
-
-if [ "$SKIPUPDATE" != "1" ]; then
-	echo "${GREEN}Updateing Slimserver customizations from Github..."
-	FILES="custom-strings.txt picore-update.html Custom.pm slimserver"
-	for F in $FILES
-	do
-		rm -f ${DL_DIR}/${F}
-		wget -O ${DL_DIR}/${F} ${GIT_REPO}/${F}
-		if [ "$?" != "0" ]; then
-			echo "${RED}Download FAILED......Please Check or Relauch script with with -s option!${NORMAL}"
-			exit 1
-		fi
-	done
 fi
 
 if [ -z "$MANUAL" ]; then
@@ -304,9 +290,8 @@ if [ -z "$TEST" ]; then
 		fi
 		rm -f /usr/local/tce.installed/slimserver
 		echo "${GREEN}Moving new Extension to $TCEDIR/optional${NORMAL}"
-		md5sum /tmp/slimserver.tcz > $TCEDIR/optional/slimserver.tcz.md5.txt
-		sed -i 's|/tmp/||' $TCEDIR/optional/slimserver.tcz.md5.txt
 		mv -f /tmp/slimserver.tcz $TCEDIR/optional
+		mv -f /tmp/slimserver.tcz.md5.txt $TCEDIR/optional
 		chown tc.staff $TCEDIR/optional/slimserver.tcz*
 		echo
 		echo "${GREEN}Syncing filesystems${NORMAL}"
@@ -329,8 +314,8 @@ if [ -z "$TEST" ]; then
 	else
 		echo "${GREEN}Moving new Extension to $TCEDIR/optional${NORMAL}"
 		md5sum /tmp/slimserver.tcz > $TCEDIR/optional/slimserver.tcz.md5.txt
-		sed -i 's|/tmp/||' $TCEDIR/optional/slimserver.tcz.md5.txt
 		mv -f /tmp/slimserver.tcz $TCEDIR/optional
+		mv -f /tmp/slimserver.tcz.md5.txt $TCEDIR/optional
 		chown tc.staff $TCEDIR/optional/slimserver.tcz*
 		echo
 		echo "${GREEN}Syncing filesystems${NORMAL}"
@@ -339,8 +324,6 @@ if [ -z "$TEST" ]; then
 		echo "${BLUE}Extension copied and will be loaded on next reboot${NORMAL}"
 	fi
 else
-	md5sum /tmp/slimserver.tcz > /tmp/slimserver.tcz.md5.txt
-	sed -i 's|/tmp/||' /tmp/slimserver.tcz.md5.txt
 	echo
 	echo -e "${BLUE}Done, the new extension was left at /tmp/slimserver.tcz"
 	echo
