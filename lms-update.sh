@@ -158,10 +158,6 @@ else
 	sed -E -i 's/>/>\n/g' $tmp
 
 	while read line; do
-		echo $line | grep -q nocpan
-		if [ $? -eq 0 ]; then
-			UPDPKG=$(echo $line)
-		fi
 		echo $line | grep -q pcp
 		if [ $? -eq 0 ]; then
 			UPDPKG=$(echo $line)
@@ -227,7 +223,7 @@ fi
 #Check for extension packages already downloaded
 PKG=$(ls -1 ${DL_DIR}/lyrionmusicserver*.tcz 2>/dev/null)
 if [ "$PKG" = "" ]; then
-	rm -f $DL_DIR/*.t?z
+	rm -f $DL_DIR/*.tcz*
 	wget -P $DL_DIR $LINK
 	if [ "$?" != "0" ]; then
 		echo "${RED}Download FAILED...... exiting!${NORMAL}"
@@ -235,9 +231,9 @@ if [ "$PKG" = "" ]; then
 		exit 1
 	fi
 	FILENAME="$(echo $NEW_URL | awk -F'/' '{ print $NF }')"
-	echo "$NEW_MD5  $FILENAME" > ${DL_DIR}/$FILENAME
+	echo "$NEW_MD5  $FILENAME" > ${DL_DIR}/${FILENAME}.md5.txt
 
-	NEWUPDATE=`find ${DL_DIR} -name "*.t?z"`
+	NEWUPDATE=`find ${DL_DIR} -name "*.tcz"`
 	if [ -z $NEWUPDATE ]; then
 		echo "${BLUE}No Update Found, please make sure Automatic updates and Automatic Downloads are enable in LMS.${NORMAL}"
 		echo
@@ -245,7 +241,7 @@ if [ "$PKG" = "" ]; then
 	fi
 fi
 
-#This package was manually downloaded
+#This package may have been manually downloaded. Check MD5
 PKG=$(ls -1 $DL_DIR/lyrionmusicserver*.tcz 2>/dev/null)
 if [ "$PKG" != "" ]; then
 	mv ${DL_DIR}/lyrionmusicserver*.tcz /tmp/slimserver.tcz
@@ -283,7 +279,7 @@ if [ -z "$TEST" ]; then
 		if [ -z "$REBOOT" ]; then
 			echo "${GREEN}Unmounting Extension${NORMAL}"
 			umount -d -f /tmp/tcloop/slimserver
-			if [ "$?" != "0" ]; then 
+			if [ "$?" != "0" ]; then
 				echo "${RED}Unmounting Filesystem failed......extension will be replaced, but reboot is requried${NORMAL}"
 				REBOOT=1
 			fi
