@@ -220,10 +220,40 @@ else
 	echo "${GREEN}Updating from ${LINK}"
 fi
 
+function get_tcz_link() {
+	echo ""
+	echo "Converting from noCPAN build to direct LMS build...."
+	NEW_URL=$(echo $1 | sed 's/-noCPAN\.tgz/\.tcz/')
+	rm -f ${DL_DIR}/*.json
+	echo "Retreiving complete server package listing....${BLUE}"
+	wget -P "${DL_DIR}" "https://lms-community.github.io/lms-server-repository/servers.json"
+	echo "${GREEN}Finding new package and checksum...."
+	PARSEMD5=$(cat ${DL_DIR}/servers.json | JSON.awk - | grep "$NEW_URL" | awk '{print $1}' | sed 's/url/md5/' | sed 's/\[//' | sed 's/\]//')
+	NEW_MD5=$(eval echo $(cat ${DL_DIR}/servers.json | JSON.awk - | grep "$PARSEMD5" | awk '{print $2}'))
+	LINK="$NEW_URL"
+	echo ""
+	echo "${GREEN}New Update link: $LINK"
+	echo "Checksum of the new package: $NEW_MD5"
+	echo ""
+}
+
 #Check for extension packages already downloaded
 PKG=$(ls -1 ${DL_DIR}/lyrionmusicserver*.tcz 2>/dev/null)
 if [ "$PKG" = "" ]; then
 	rm -f $DL_DIR/*.tcz*
+	case "$LINK" in
+		*.tgz)
+			NEW_URL=""
+			NEW_MD5=""
+			get_tcz_link $LINK
+			if [ "$NEW_URL" = "" -o "$NEW_MD5" = "" ]; then
+				echo "${RED}Error finding new Lyrion extension from servers. Please try again."
+				exit 1
+			fi
+		;;
+		*);;
+	esac
+
 	wget -P $DL_DIR $LINK
 	if [ "$?" != "0" ]; then
 		echo "${RED}Download FAILED...... exiting!${NORMAL}"
@@ -258,6 +288,8 @@ fi
 REBOOT=""
 if [ -z "$TEST" ]; then
 	if [ -n "$RELOAD" ]; then
+		echo ""
+		echo "${BLUE}New Server extension downloaded and tested..."
 		echo "${BLUE}Ready to Reload LMS, Press Enter to Continue${NORMAL}"
 		[ -z "$UNATTENDED" ] && read key
 		echo "${GREEN}Stopping LMS"
