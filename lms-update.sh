@@ -274,8 +274,8 @@ fi
 #This package may have been manually downloaded. Check MD5
 PKG=$(ls -1 $DL_DIR/lyrionmusicserver*.tcz 2>/dev/null)
 if [ "$PKG" != "" ]; then
-	mv ${DL_DIR}/lyrionmusicserver*.tcz /tmp/slimserver.tcz
-	mv ${DL_DIR}/lyrionmusicserver*.tcz.md5.txt /tmp/slimserver.tcz.md5.txt
+	mv ${PKG} /tmp/slimserver.tcz
+	mv ${PKG}.md5.txt /tmp/slimserver.tcz.md5.txt
 	sed -i 's/lyrionmusicserver-.*/slimserver.tcz/' /tmp/slimserver.tcz.md5.txt
 	cd /tmp
 	md5sum -cs slimserver.tcz.md5.txt
