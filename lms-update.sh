@@ -325,6 +325,9 @@ if [ -z "$TEST" ]; then
 		echo "${GREEN}Syncing filesystems${NORMAL}"
 		sync
 		if [ -z "$REBOOT" ]; then
+			#Remove old file links.
+			rm -f /usr/local/slimserver/custom-strings.txt
+			rm -f /usr/local/slimserver/Slim/Utils/OS/Custom.pm
 			echo "${GREEN}Loading new Extension${NORMAL}"
 			su - tc -c "tce-load -li slimserver.tcz"
 			if [ "$?" != "0" ]; then
