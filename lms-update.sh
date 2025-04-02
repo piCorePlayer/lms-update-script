@@ -15,8 +15,9 @@
 checkroot
 TCEDIR=$(readlink "/etc/sysconfig/tcedir")
 DL_DIR="/tmp/slimupdate"
-# Future
-LMS_DIR="/usr/local/slimserver/Cache/updates"
+# This is the default donwload location, currently overriden in pCP.pm
+# The pCP web interface currently uses DL_DIR/update_url to determine if an update is needed
+# LMS_DIR="/usr/local/slimserver/Cache/updates"
 #
 UPDATELINK="${DL_DIR}/update_url"
 SCRIPT=$(readlink -f $0)
@@ -91,7 +92,7 @@ if [ -z "$RESUME" ]; then
 	[ -z "$UNATTENDED" ] && read key
 
 	if [ "$SKIPUPDATE" != "1" ]; then
-	#Check for depednancy of openssl for wget to work with https://
+	# Check for depednancy of openssl for wget to work with https://
 		if [ ! -x /usr/local/bin/openssl ]; then
 			if  [ ! -f $TCEDIR/optional/openssl.tcz ]; then
 				echo "${GREEN} Downloading required extension openssl.tcz${NORMAL}"
@@ -141,6 +142,7 @@ if [ -z "$MANUAL" ]; then
 		LINK="0"
 	fi
 else
+	# This will download the branch xml file to determine the current version
 	VERSION=$(fgrep "our \$VERSION" /usr/local/slimserver/slimserver.pl | cut -d"'" -f2)
 	REVISION=$(head -n 1 /usr/local/slimserver/revision.txt)
 	echo "${YELLOW}Current Version is: $VERSION r${REVISION}.${NORMAL}"
@@ -237,10 +239,11 @@ function get_tcz_link() {
 	echo ""
 }
 
-#Check for extension packages already downloaded
+# Check for extension packages already downloaded
 PKG=$(ls -1 ${DL_DIR}/lyrionmusicserver*.tcz 2>/dev/null)
 if [ "$PKG" = "" ]; then
 	rm -f $DL_DIR/*.tcz*
+	# Check for file extension in link, if it is a tgz, it needs converted to tcz
 	case "$LINK" in
 		*.tgz)
 			NEW_URL=""
@@ -271,7 +274,8 @@ if [ "$PKG" = "" ]; then
 	fi
 fi
 
-#This package may have been manually downloaded. Check MD5
+# LMS checks md5 when downloading automatically, but if this is a manual check, then the md5 needs checked
+# so just check the md5.
 PKG=$(ls -1 $DL_DIR/lyrionmusicserver*.tcz 2>/dev/null)
 if [ "$PKG" != "" ]; then
 	mv ${PKG} /tmp/slimserver.tcz
@@ -325,7 +329,7 @@ if [ -z "$TEST" ]; then
 		echo "${GREEN}Syncing filesystems${NORMAL}"
 		sync
 		if [ -z "$REBOOT" ]; then
-			#Remove old file links.
+			# Make sure Custom.pm is removed, pCP has direct support in the downloaded extension
 			rm -f /usr/local/slimserver/custom-strings.txt
 			rm -f /usr/local/slimserver/Slim/Utils/OS/Custom.pm
 			echo "${GREEN}Loading new Extension${NORMAL}"
@@ -366,9 +370,7 @@ echo
 
 if [ -z "$DEBUG" ]; then
 	echo -e "${GREEN}Deleting the temp folders"
-	rm -rf $BUILD_DIR
-	rm -rf $SRC_DIR
-	#Erase Downloaded Files
+	# Remove Downloaded Files
 	rm -f ${DL_DIR}/*
 fi
 
