@@ -69,6 +69,27 @@ while true; do
 	shift
 done
 
+VERSION=$(fgrep "our \$VERSION" /usr/local/slimserver/slimserver.pl | cut -d"'" -f2)
+if [ "$RELEASE" = "release" -o "$RELEASE" = "stable" ]; then
+	# An manual update is occuring, but those branches still use the CPAN update method.
+	GIT_REPO="https://raw.githubusercontent.com/piCorePlayer/lms-update-script/Master"
+   echo "${BLUE}********************************************************"
+	echo "${BLUE}Updating Script for use CPAN method..."
+	echo "${BLUE}********************************************************"
+	F="lms-update.sh"
+	rm -f ${DL_DIR}/new-${F}
+	wget -O ${DL_DIR}/new-${F} ${GIT_REPO}/${F}
+	if [ "$?" != "0" ]; then
+	      echo "${RED}Download FAILED......Please Check or Relauch script with with -s option!${NORMAL}"
+	      exit 1
+	fi
+	echo "${GREEN}Relaunching Script in 3 seconds${NORMAL}"
+	chmod 755 ${DL_DIR}/new-${F}
+	sleep 3
+	set -- "--sss" $NEWARGS
+	exec /bin/sh ${DL_DIR}/new-${F} "${@}"
+fi
+
 if [ -z "$RESUME" ]; then
 
 	echo
