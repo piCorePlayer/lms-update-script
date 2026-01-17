@@ -70,7 +70,7 @@ while true; do
 done
 
 VERSION=$(fgrep "our \$VERSION" /usr/local/slimserver/slimserver.pl | cut -d"'" -f2)
-if [ "$RELEASE" = "release" -o "$RELEASE" = "stable" ]; then
+if [ "$RELEASE" = "release" ]; then
 	# An manual update is occuring, but those branches still use the CPAN update method.
 	GIT_REPO="https://raw.githubusercontent.com/piCorePlayer/lms-update-script/Master"
    echo "${BLUE}********************************************************"
