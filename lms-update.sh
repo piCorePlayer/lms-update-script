@@ -66,14 +66,15 @@ while true; do
 done
 
 VERSION=$(fgrep "our \$VERSION" /usr/local/slimserver/slimserver.pl | cut -d"'" -f2)
-if [ "$RELEASE" = "release" -o "$RELEASE" = "stable" ]; then
+if [ "$RELEASE" = "release" ]; then
 	# An manual update is occuring, but
 	# Keep Release and Stable branches on the CPAN update mechanism.
 	echo ""
 else
 	# Current nightly is version 9.1.0, if on that branch, or selecting a manual devel update
+	# (2026-01-16 Stable is not on this packaging strategy too.
 	# Then move the user to the new update mechanism.
-	if [ "$VERSION" = "9.1.0" -o "$RELEASE" = "devel" ]; then
+	if [ "$VERSION" = "9.1.0" -o "$RELEASE" = "devel" -o "$RELEASE" = "stable" ]; then
 		GIT_REPO="https://raw.githubusercontent.com/piCorePlayer/lms-update-script/prebuilt_tcz"
 		# Go ahead and update again.
 		echo "${BLUE}********************************************************"
