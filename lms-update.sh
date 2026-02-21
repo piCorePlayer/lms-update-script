@@ -66,34 +66,30 @@ while true; do
 done
 
 VERSION=$(fgrep "our \$VERSION" /usr/local/slimserver/slimserver.pl | cut -d"'" -f2)
-if [ "$RELEASE" = "release" ]; then
-	# An manual update is occuring, but
-	# Keep Release and Stable branches on the CPAN update mechanism.
-	echo ""
-else
-	# Current nightly is version 9.1.0, if on that branch, or selecting a manual devel update
-	# (2026-01-16 Stable is not on this packaging strategy too.
-	# Then move the user to the new update mechanism.
-	if [ "$VERSION" = "9.1.0" -o "$RELEASE" = "devel" -o "$RELEASE" = "stable" ]; then
-		GIT_REPO="https://raw.githubusercontent.com/piCorePlayer/lms-update-script/prebuilt_tcz"
-		# Go ahead and update again.
-		echo "${BLUE}********************************************************"
-		echo "${BLUE}Updating Script for new prebuilt tcz from Lyrion.org..."
-		echo "${BLUE}********************************************************"
-		F="lms-update.sh"
-		rm -f ${DL_DIR}/new-${F}
-		wget -O ${DL_DIR}/new-${F} ${GIT_REPO}/${F}
-		if [ "$?" != "0" ]; then
-			echo "${RED}Download FAILED......Please Check or Relauch script with with -s option!${NORMAL}"
-			exit 1
-		fi
-		echo "${GREEN}Relaunching Script in 3 seconds${NORMAL}"
-		chmod 755 ${DL_DIR}/new-${F}
-		sleep 3
-		set -- "--sss" $NEWARGS
-		exec /bin/sh ${DL_DIR}/new-${F} "${@}"
-	fi
+
+# Move to the new release mechanism
+GIT_REPO="https://raw.githubusercontent.com/piCorePlayer/lms-update-script/prebuilt_tcz"
+# Go ahead and update again.
+echo "${BLUE}********************************************************"
+echo "${BLUE}Updating Script for new prebuilt tcz from Lyrion.org..."
+echo "${BLUE}********************************************************"
+F="lms-update.sh"
+rm -f ${DL_DIR}/new-${F}
+wget -O ${DL_DIR}/new-${F} ${GIT_REPO}/${F}
+if [ "$?" != "0" ]; then
+	echo "${RED}Download FAILED......Please Check or Relauch script with with -s option!${NORMAL}"
+	exit 1
 fi
+echo "${GREEN}Relaunching Script in 3 seconds${NORMAL}"
+chmod 755 ${DL_DIR}/new-${F}
+sleep 3
+set -- "--sss" $NEWARGS
+exec /bin/sh ${DL_DIR}/new-${F} "${@}"
+
+
+###Should not get here
+echo "${RED}Some error occured, this is unexpected${NORMAL}"
+exit 1
 
 if [ -z "$RESUME" ]; then
 
