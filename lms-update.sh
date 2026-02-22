@@ -235,8 +235,13 @@ function get_tcz_link() {
 	NEW_MD5=$(eval echo $(cat ${DL_DIR}/servers.json | JSON.awk - | grep "$PARSEMD5" | awk '{print $2}'))
 	LINK="$NEW_URL"
 	echo ""
-	echo "${GREEN}New Update link: $LINK"
-	echo "Checksum of the new package: $NEW_MD5"
+	if [ "$NEW_MD5" = "" ]; then
+		echo "${RED}Error getting checksum from servers.json"
+		exit 1
+	else
+		echo "${GREEN}New Update link: $LINK"
+		echo "Checksum of the new package: $NEW_MD5"
+	fi
 	echo ""
 }
 
@@ -275,18 +280,20 @@ if [ "$PKG" = "" ]; then
 	fi
 fi
 
-# LMS checks md5 when downloading automatically, but if this is a manual check, then the md5 needs checked
-# so just check the md5.
 PKG=$(ls -1 $DL_DIR/lyrionmusicserver*.tcz 2>/dev/null)
 if [ "$PKG" != "" ]; then
 	mv ${PKG} /tmp/slimserver.tcz
-	mv ${PKG}.md5.txt /tmp/slimserver.tcz.md5.txt
-	sed -i 's/lyrionmusicserver-.*/slimserver.tcz/' /tmp/slimserver.tcz.md5.txt
-	cd /tmp
-	md5sum -cs slimserver.tcz.md5.txt
-	if [ $? -ne 0 ]; then
-		echo "$PKG MD5 does not verify, please try again."
-		exit 1
+	# LMS checks md5 when downloading automatically, 
+	# but if this is a manual check, then the md5 needs checked
+	if [ -f ${PKG}.md5.txt ]; then
+		mv ${PKG}.md5.txt /tmp/slimserver.tcz.md5.txt
+		sed -i 's/lyrionmusicserver-.*/slimserver.tcz/' /tmp/slimserver.tcz.md5.txt
+		cd /tmp
+		md5sum -cs slimserver.tcz.md5.txt
+		if [ $? -ne 0 ]; then
+			echo "$PKG MD5 does not verify, please try again."
+			exit 1
+		fi
 	fi
 fi
 
@@ -349,9 +356,9 @@ if [ -z "$TEST" ]; then
 		fi
 	else
 		echo "${GREEN}Moving new Extension to $TCEDIR/optional${NORMAL}"
-		md5sum /tmp/slimserver.tcz > $TCEDIR/optional/slimserver.tcz.md5.txt
-		mv -f /tmp/slimserver.tcz $TCEDIR/optional
-		mv -f /tmp/slimserver.tcz.md5.txt $TCEDIR/optional
+		cd /tmp
+		md5sum slimserver.tcz > $TCEDIR/optional/slimserver.tcz.md5.txt
+		mv -f slimserver.tcz $TCEDIR/optional
 		chown tc.staff $TCEDIR/optional/slimserver.tcz*
 		echo
 		echo "${GREEN}Syncing filesystems${NORMAL}"
