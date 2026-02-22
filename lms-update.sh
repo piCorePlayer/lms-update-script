@@ -249,19 +249,14 @@ function get_tcz_link() {
 PKG=$(ls -1 ${DL_DIR}/lyrionmusicserver*.tcz 2>/dev/null)
 if [ "$PKG" = "" ]; then
 	rm -f $DL_DIR/*.tcz*
-	# Check for file extension in link, if it is a tgz, it needs converted to tcz
-	case "$LINK" in
-		*.tgz)
-			NEW_URL=""
-			NEW_MD5=""
-			get_tcz_link $LINK
-			if [ "$NEW_URL" = "" -o "$NEW_MD5" = "" ]; then
-				echo "${RED}Error finding new Lyrion extension from servers. Please try again."
-				exit 1
-			fi
-		;;
-		*);;
-	esac
+	NEW_URL=""
+	NEW_MD5=""
+	# We are downloading, get the link and md5
+	get_tcz_link $LINK
+	if [ "$NEW_URL" = "" -o "$NEW_MD5" = "" ]; then
+		echo "${RED}Error finding new Lyrion extension from servers. Please try again."
+		exit 1
+	fi
 
 	wget -P $DL_DIR $LINK
 	if [ "$?" != "0" ]; then
