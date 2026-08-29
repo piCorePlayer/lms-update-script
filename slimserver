@@ -73,10 +73,10 @@ set_dirs(){
 	[ -e $LOGS/perfmon.log ] || touch $LOGS/perfmon.log
 
 	#This needs to be done incase user changes the username group configuration
-	chown -R $LMSUSER.$LMSGROUP $LOGS
-	chown -R $LMSUSER.$LMSGROUP $CACHE
-	chown -R $LMSUSER.$LMSGROUP $PREFS
-	chown -R $LMSUSER.$LMSGROUP $TMPDIR
+	chown -R $LMSUSER:$LMSGROUP $LOGS
+	chown -R $LMSUSER:$LMSGROUP $CACHE
+	chown -R $LMSUSER:$LMSGROUP $PREFS
+	chown -R $LMSUSER:$LMSGROUP $TMPDIR
 }
 
 case "${1}" in
@@ -97,7 +97,7 @@ case "${1}" in
 		[ -d /usr/local/slimserver/prefs ] || ln -s $PREFS /usr/local/slimserver/prefs
 
 		#  tce-load sets ownership to root.root, need to make sure lms and the symlinks are all user writable
-		chown -R $LMSUSER.$LMSGROUP /usr/local/slimserver
+		chown -R $LMSUSER:$LMSGROUP /usr/local/slimserver
 
 		# Wait until network is up and running, or it will cause server startup problems
 		CNT=0

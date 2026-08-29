@@ -327,7 +327,7 @@ if [ -z "$TEST" ]; then
 		echo "${GREEN}Moving new Extension to $TCEDIR/optional${NORMAL}"
 		mv -f /tmp/slimserver.tcz $TCEDIR/optional
 		mv -f /tmp/slimserver.tcz.md5.txt $TCEDIR/optional
-		chown tc.staff $TCEDIR/optional/slimserver.tcz*
+		chown tc:staff $TCEDIR/optional/slimserver.tcz*
 		echo
 		echo "${GREEN}Syncing filesystems${NORMAL}"
 		sync
@@ -354,7 +354,7 @@ if [ -z "$TEST" ]; then
 		cd /tmp
 		md5sum slimserver.tcz > $TCEDIR/optional/slimserver.tcz.md5.txt
 		mv -f slimserver.tcz $TCEDIR/optional
-		chown tc.staff $TCEDIR/optional/slimserver.tcz*
+		chown tc:staff $TCEDIR/optional/slimserver.tcz*
 		echo
 		echo "${GREEN}Syncing filesystems${NORMAL}"
 		sync
